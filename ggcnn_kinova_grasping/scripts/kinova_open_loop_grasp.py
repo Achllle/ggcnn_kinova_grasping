@@ -72,7 +72,7 @@ def execute_grasp():
     gp.orientation.w = 1
 
     # Convert to base frame, add the angle in (ensures planar grasp, camera isn't guaranteed to be perpendicular).
-    gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'm1n6s200_link_base')
+    gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'm1n6s300_link_base')
 
     q = tft.quaternion_from_euler(np.pi, 0, d[3])
     gp_base.orientation.x = q[0]
@@ -80,7 +80,7 @@ def execute_grasp():
     gp_base.orientation.z = q[2]
     gp_base.orientation.w = q[3]
 
-    publish_pose_as_transform(gp_base, 'm1n6s200_link_base', 'G', 0.5)
+    publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 0.5)
 
     # Offset for initial pose.
     initial_offset = 0.20
@@ -107,7 +107,7 @@ def execute_grasp():
     cart_cov = generate_cartesian_covariance(0)
 
     # Move straight down under velocity control.
-    velo_pub = rospy.Publisher('/m1n6s200_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
+    velo_pub = rospy.Publisher('/m1n6s300_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
     while MOVING and CURR_Z - 0.02 > gp_base.position.z:
         dz = gp_base.position.z - CURR_Z - 0.03   # Offset by a few cm for the fingertips.
         MAX_VELO_Z = 0.08
@@ -142,16 +142,16 @@ if __name__ == '__main__':
     rospy.init_node('ggcnn_open_loop_grasp')
 
     # Robot Monitors.
-    wrench_sub = rospy.Subscriber('/m1n6s200_driver/out/tool_wrench', geometry_msgs.msg.WrenchStamped, robot_wrench_callback, queue_size=1)
-    position_sub = rospy.Subscriber('/m1n6s200_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
+    wrench_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_wrench', geometry_msgs.msg.WrenchStamped, robot_wrench_callback, queue_size=1)
+    position_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
 
     # https://github.com/dougsm/rosbag_recording_services
     # start_record_srv = rospy.ServiceProxy('/data_recording/start_recording', std_srvs.srv.Trigger)
     # stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', std_srvs.srv.Trigger)
 
     # Enable/disable force control.
-    start_force_srv = rospy.ServiceProxy('/m1n6s200_driver/in/start_force_control', kinova_msgs.srv.Start)
-    stop_force_srv = rospy.ServiceProxy('/m1n6s200_driver/in/stop_force_control', kinova_msgs.srv.Stop)
+    start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
+    stop_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/stop_force_control', kinova_msgs.srv.Stop)
 
     # Home position.
     move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])

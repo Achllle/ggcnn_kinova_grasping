@@ -110,7 +110,7 @@ def command_callback(msg):
 
             # Calculate Pose of Grasp in Robot Base Link Frame
             # Average over a few predicted poses to help combat noise.
-            gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'm1n6s200_link_base')
+            gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'm1n6s300_link_base')
             gpbo = gp_base.orientation
             e = tft.euler_from_quaternion([gpbo.x, gpbo.y, gpbo.z, gpbo.w])
             # Only really care about rotation about z (e[2]).
@@ -136,9 +136,9 @@ def command_callback(msg):
         g_pose = geometry_msgs.msg.Pose()
         g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers.
         g_pose.orientation.w = 1
-        p_gripper = convert_pose(g_pose, 'm1n6s200_end_effector', 'm1n6s200_link_base')
+        p_gripper = convert_pose(g_pose, 'm1n6s300_end_effector', 'm1n6s300_link_base')
 
-        publish_pose_as_transform(gp_base, 'm1n6s200_link_base', 'G', 0.0)
+        publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 0.0)
 
         # Calculate Position Error.
         dx = (gp_base.position.x - p_gripper.position.x)
@@ -147,7 +147,7 @@ def command_callback(msg):
 
         # Orientation velocity control is done in the frame of the gripper,
         #  so figure out the rotation offset in the end effector frame.
-        gp_gripper = convert_pose(gp_base, 'm1n6s200_link_base', 'm1n6s200_end_effector')
+        gp_gripper = convert_pose(gp_base, 'm1n6s300_link_base', 'm1n6s300_end_effector')
         pgo = gp_gripper.orientation
         q1 = [pgo.x, pgo.y, pgo.z, pgo.w]
         e = tft.euler_from_quaternion(q1)
@@ -251,21 +251,21 @@ def robot_position_callback(msg):
 if __name__ == '__main__':
     rospy.init_node('kinova_velocity_control')
 
-    position_sub = rospy.Subscriber('/m1n6s200_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
-    finger_sub = rospy.Subscriber('/m1n6s200_driver/out/finger_position', kinova_msgs.msg.FingerPosition, finger_position_callback, queue_size=1)
-    wrench_sub = rospy.Subscriber('/m1n6s200_driver/out/tool_wrench', geometry_msgs.msg.WrenchStamped, robot_wrench_callback, queue_size=1)
+    position_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
+    finger_sub = rospy.Subscriber('/m1n6s300_driver/out/finger_position', kinova_msgs.msg.FingerPosition, finger_position_callback, queue_size=1)
+    wrench_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_wrench', geometry_msgs.msg.WrenchStamped, robot_wrench_callback, queue_size=1)
     command_sub = rospy.Subscriber('/ggcnn/out/command', std_msgs.msg.Float32MultiArray, command_callback, queue_size=1)
 
     # https://github.com/dougsm/rosbag_recording_services
     # start_record_srv = rospy.ServiceProxy('/data_recording/start_recording', std_srvs.srv.Trigger)
     # stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', std_srvs.srv.Trigger)
 
-    start_force_srv = rospy.ServiceProxy('/m1n6s200_driver/in/start_force_control', kinova_msgs.srv.Start)
+    start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
     start_force_srv.call(kinova_msgs.srv.StartRequest())
 
     # Publish velocity at 100Hz.
-    velo_pub = rospy.Publisher('/m1n6s200_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
-    finger_pub = rospy.Publisher('/m1n6s200_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
+    velo_pub = rospy.Publisher('/m1n6s300_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
+    finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
     r = rospy.Rate(100)
 
     move_to_position([0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)])
