@@ -154,21 +154,24 @@ if __name__ == '__main__':
     stop_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/stop_force_control', kinova_msgs.srv.Stop)
 
     # Home position.
-    move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+    # move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
 
-    while not rospy.is_shutdown():
+    try:
+        while not rospy.is_shutdown():
 
-        rospy.sleep(0.5)
-        set_finger_positions([0, 0])
-        rospy.sleep(0.5)
+            rospy.sleep(0.5)
+            set_finger_positions([0, 0])
+            rospy.sleep(0.5)
 
-        raw_input('Press Enter to Start.')
+            raw_input('Press Enter to Start.')
 
-        # start_record_srv(std_srvs.srv.TriggerRequest())
-        rospy.sleep(0.5)
-        execute_grasp()
-        move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
-        rospy.sleep(0.5)
-        # stop_record_srv(std_srvs.srv.TriggerRequest())
+            # start_record_srv(std_srvs.srv.TriggerRequest())
+            rospy.sleep(0.5)
+            execute_grasp()
+            # move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+            rospy.sleep(0.5)
+            # stop_record_srv(std_srvs.srv.TriggerRequest())
 
-        raw_input('Press Enter to Complete')
+            raw_input('Press Enter to Complete')
+    except rospy.ROSInterruptException:
+        rospy.loginfo('shutting down')

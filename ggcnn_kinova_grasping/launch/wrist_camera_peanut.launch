@@ -8,6 +8,7 @@
         <remap from="image" to="/camera/depth/image_meters"/>
   </node>
 
+    <!-- static_transform_publisher x y z yaw pitch roll frame_id child_frame_id  period (milliseconds) -->
   <node pkg="tf" type="static_transform_publisher" name="realsense_link_broadcaster"
         args="0.05425 -0.024 -0.1258 3.14 1.32 0 /m1n6s300_link_6 /camera_link 10" />
 

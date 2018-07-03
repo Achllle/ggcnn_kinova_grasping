@@ -21,6 +21,7 @@ def move_to_position(position, orientation):
         x=orientation[0], y=orientation[1], z=orientation[2], w=orientation[3])
 
     position_client.send_goal(goal)
+    print('Sent position goal, waiting for result for max 10s...')
 
     if position_client.wait_for_result(rospy.Duration(10.0)):
         return position_client.get_result()
