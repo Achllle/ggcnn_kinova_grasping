@@ -25,6 +25,8 @@ model = load_model(MODEL_FILE)
 
 rospy.init_node('ggcnn_detection')
 
+rospy.loginfo('initialized node, loaded model')
+
 # Output publishers.
 grasp_pub = rospy.Publisher('ggcnn/img/grasp', Image, queue_size=1)
 grasp_plain_pub = rospy.Publisher('ggcnn/img/grasp_plain', Image, queue_size=1)
@@ -47,6 +49,7 @@ cx = K[2]
 fy = K[4]
 cy = K[5]
 
+rospy.loginfo('got camera info')
 
 # Execution Timing
 class TimeIt:
@@ -71,6 +74,7 @@ def robot_pos_callback(data):
 
 
 def depth_callback(depth_message):
+
     global model
     global graph
     global prev_mp
@@ -140,7 +144,7 @@ def depth_callback(depth_message):
         ALWAYS_MAX = False  # Use ALWAYS_MAX = True for the open-loop solution.
 
         if ROBOT_Z > 0.34 or ALWAYS_MAX:  # > 0.34 initialises the max tracking when the robot is reset.
-            # Track the global max.
+            # Track the global max.rospy.loginfo('got here')
             max_pixel = np.array(np.unravel_index(np.argmax(points_out), points_out.shape))
             prev_mp = max_pixel.astype(np.int)
         else:

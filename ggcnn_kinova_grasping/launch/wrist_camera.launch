@@ -3,7 +3,7 @@
   <arg name="camera"          default="camera" />
 
   <!-- Type of RealSense camera -->
-  <arg name="camera_type"     default="SR300" />
+  <arg name="camera_type"     default="sr300" />
 
   <!-- "serial_no" or "usb_port_id" should be a unique identifier to connect to a device -->
   <arg name="serial_no"     default="" />
@@ -109,7 +109,8 @@
 
   <node pkg="nodelet" type="nodelet" name="convert_depth_to_m"
         args="load depth_image_proc/convert_metric standalone_nodelet">
-        <remap from="image_raw" to="/camera/depth/image_raw"/>
+        <
+ from="image_raw" to="/camera/depth/image_raw"/>
         <remap from="image" to="/camera/depth/image_meters"/>
   </node>
 

@@ -1,0 +1,22 @@
+<launch>
+
+  <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
+
+  <node pkg="nodelet" type="nodelet" name="convert_depth_to_m"
+        args="load depth_image_proc/convert_metric standalone_nodelet">
+        <remap from="image_raw" to="/camera/depth/image_rect_raw"/>
+        <remap from="image" to="/camera/depth/image_meters"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="realsense_link_broadcaster"
+        args="0.05425 -0.024 -0.1258 3.14 1.32 0 /m1n6s300_link_6 /camera_link 10" />
+
+<!--  <node name="image_view_rgb" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/camera/rgb/image_color" />
+  </node>
+
+  <node name="image_view_depth" pkg="image_view" type="image_view" respawn="false" output="screen">
+    <remap from="image" to="/camera/depth/image_meters" />
+  </node> -->
+
+</launch>
