@@ -35,6 +35,8 @@ CURR_DEPTH = 350  # Depth measured from camera.
 
 SERVO = False
 
+HOME = [0.41, 0.04, 0.19], [0.99, -0.13, 0.02, -0.03]
+# HOME = [0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)]
 
 class Averager():
     def __init__(self, inputs, time_steps):
@@ -211,6 +213,7 @@ def robot_position_callback(msg):
     global pose_averager
     global start_record_srv
     global stop_record_srv
+    global HOME
 
     CURR_Z = msg.pose.position.z
 
@@ -225,7 +228,8 @@ def robot_position_callback(msg):
             rospy.sleep(0.5)
 
             # Move Home.
-            move_to_position([0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+            rospy.loginfo('moving home...')
+            move_to_position(*HOME)
             rospy.sleep(0.25)
 
             # stop_record_srv(std_srvs.srv.TriggerRequest())
@@ -268,7 +272,8 @@ if __name__ == '__main__':
     finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
     r = rospy.Rate(100)
 
-    move_to_position([0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+    rospy.loginfo('moving home...')
+    move_to_position(*HOME)
     rospy.sleep(0.5)
     set_finger_positions([0, 0])
     rospy.sleep(0.5)
