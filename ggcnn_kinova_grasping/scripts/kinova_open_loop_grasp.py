@@ -16,6 +16,8 @@ from helpers.position_action_client import position_client, move_to_position
 from helpers.transforms import current_robot_pose, publish_tf_quaterion_as_transform, convert_pose, publish_pose_as_transform
 from helpers.covariance import generate_cartesian_covariance
 
+import pdb
+
 MOVING = False  # Flag whether the robot is moving under velocity control.
 CURR_Z = 0  # Current end-effector z height.
 
@@ -23,9 +25,9 @@ CURR_Z = 0  # Current end-effector z height.
 def robot_wrench_callback(msg):
     # Monitor wrench to cancel movement on collision.
     global MOVING
-    if MOVING and msg.wrench.force.z < -2.0:
+    if MOVING and msg.wrench.force.z < -5.0:
         MOVING = False
-        rospy.logerr('Force Detected. Stopping.')
+        rospy.logerr('Force Detected. Stopping. Robot moving?: {}'.format(MOVING))
 
 
 def robot_position_callback(msg):
@@ -51,13 +53,16 @@ def execute_grasp():
     # Get the positions.
     msg = rospy.wait_for_message('/ggcnn/out/command', std_msgs.msg.Float32MultiArray)
     d = list(msg.data)
+    print('ggcnn command: {}'.format(d))
 
     # Calculate the gripper width.
     grip_width = d[4]
+    rospy.loginfo('grip_width: {}'.format(grip_width))
+    # pdb.set_trace()
     # Convert width in pixels to mm.
     # 0.07 is distance from end effector (CURR_Z) to camera.
     # 0.1 is approx degrees per pixel for the realsense.
-    g_width = 2 * ((CURR_Z + 0.07)) * np.tan(0.1 * grip_width / 2.0 / 180.0 * np.pi) * 1000
+    g_width = 2 * ((CURR_Z + 0.07)) * np.tan(0.1 * grip_width / 2.0 / 180.0 * np.pi) * 1000 + 10
     # Convert into motor positions.
     g = min((1 - (min(g_width, 70)/70)) * (6800-4000) + 4000, 5500)
     set_finger_positions([g, g])
@@ -80,6 +85,8 @@ def execute_grasp():
     gp_base.orientation.z = q[2]
     gp_base.orientation.w = q[3]
 
+    rospy.loginfo('grasp pose: {}'.format(gp_base))
+
     publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 0.5)
 
     # Offset for initial pose.
@@ -87,13 +94,15 @@ def execute_grasp():
     gp_base.position.z += initial_offset
 
     # Disable force control, makes the robot more accurate.
-    stop_force_srv.call(kinova_msgs.srv.StopRequest())
+    # stop_force_srv.call(kinova_msgs.srv.StopRequest())
+
+    rospy.sleep(0.5)
 
     move_to_pose(gp_base)
     rospy.sleep(0.1)
 
     # Start force control, helps prevent bad collisions.
-    start_force_srv.call(kinova_msgs.srv.StartRequest())
+    # start_force_srv.call(kinova_msgs.srv.StartRequest())
 
     rospy.sleep(0.25)
 
@@ -133,7 +142,7 @@ def execute_grasp():
     gp_base.orientation.w = 0
     move_to_pose(gp_base)
 
-    stop_force_srv.call(kinova_msgs.srv.StopRequest())
+    # stop_force_srv.call(kinova_msgs.srv.StopRequest())
 
     return
 
@@ -150,8 +159,8 @@ if __name__ == '__main__':
     # stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', std_srvs.srv.Trigger)
 
     # Enable/disable force control.
-    start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
-    stop_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/stop_force_control', kinova_msgs.srv.Stop)
+    # start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
+    # stop_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/stop_force_control', kinova_msgs.srv.Stop)
 
     # Home position.
     # move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
