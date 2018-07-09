@@ -23,7 +23,7 @@ CURR_Z = 0  # Current end-effector z height.
 def robot_wrench_callback(msg):
     # Monitor wrench to cancel movement on collision.
     global MOVING
-    if MOVING and msg.wrench.force.z < -2.0:
+    if MOVING and msg.wrench.force.z < -7.0:
         MOVING = False
         rospy.logerr('Force Detected. Stopping.')
 
@@ -41,7 +41,7 @@ def move_to_pose(pose):
     move_to_position([p.x, p.y, p.z], [o.x, o.y, o.z, o.w])
 
 
-def execute_grasp():
+def execute_grasp(mode):
     # Execute a grasp.
     global MOVING
     global CURR_Z
@@ -57,7 +57,8 @@ def execute_grasp():
     # Convert width in pixels to mm.
     # 0.07 is distance from end effector (CURR_Z) to camera.
     # 0.1 is approx degrees per pixel for the realsense.
-    g_width = 2 * ((CURR_Z + 0.07)) * np.tan(0.1 * grip_width / 2.0 / 180.0 * np.pi) * 1000
+    # NOTE: Achille added 20 mm here to the end to account for different gripper and camera rel. pose
+    g_width = 2 * ((CURR_Z + 0.07)) * np.tan(0.1 * grip_width / 2.0 / 180.0 * np.pi) * 1000 + 20
     # Convert into motor positions.
     g = min((1 - (min(g_width, 70)/70)) * (6800-4000) + 4000, 5500)
     set_finger_positions([g, g])
@@ -80,43 +81,47 @@ def execute_grasp():
     gp_base.orientation.z = q[2]
     gp_base.orientation.w = q[3]
 
-    publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 0.5)
+    # for visualization: last arg is the duration of the publishment
+    publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 15)
 
     # Offset for initial pose.
     initial_offset = 0.20
-    gp_base.position.z += initial_offset
+    if mode == 'force_control':
+        gp_base.position.z += initial_offset
 
-    # Disable force control, makes the robot more accurate.
-    stop_force_srv.call(kinova_msgs.srv.StopRequest())
+        # Disable force control, makes the robot more accurate.
+        stop_force_srv.call(kinova_msgs.srv.StopRequest())
 
     move_to_pose(gp_base)
     rospy.sleep(0.1)
 
-    # Start force control, helps prevent bad collisions.
-    start_force_srv.call(kinova_msgs.srv.StartRequest())
+    if mode == 'force_control':
+        # Start force control, helps prevent bad collisions.
+        start_force_srv.call(kinova_msgs.srv.StartRequest())
 
-    rospy.sleep(0.25)
+        rospy.sleep(0.25)
 
-    # Reset the position
-    gp_base.position.z -= initial_offset
+        # Reset the position
+        gp_base.position.z -= initial_offset
 
-    # Flag to check for collisions.
-    MOVING = True
+        # Flag to check for collisions.
+        MOVING = True
 
-    # Generate a nonlinearity for the controller.
-    cart_cov = generate_cartesian_covariance(0)
+        # Generate a nonlinearity for the controller.
+        cart_cov = generate_cartesian_covariance(0)
 
-    # Move straight down under velocity control.
-    velo_pub = rospy.Publisher('/m1n6s300_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
-    while MOVING and CURR_Z - 0.02 > gp_base.position.z:
-        dz = gp_base.position.z - CURR_Z - 0.03   # Offset by a few cm for the fingertips.
-        MAX_VELO_Z = 0.08
-        dz = max(min(dz, MAX_VELO_Z), -1.0*MAX_VELO_Z)
+        # Move straight down under velocity control.
+        velo_pub = rospy.Publisher('/m1n6s300_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
+        while MOVING and CURR_Z - 0.02 > gp_base.position.z:
+            dz = gp_base.position.z - CURR_Z - 0.03   # Offset by a few cm for the fingertips.
+            MAX_VELO_Z = 0.08
+            dz = max(min(dz, MAX_VELO_Z), -1.0*MAX_VELO_Z)
 
-        v = np.array([0, 0, dz])
-        vc = list(np.dot(v, cart_cov)) + [0, 0, 0]
-        velo_pub.publish(kinova_msgs.msg.PoseVelocity(*vc))
-        rospy.sleep(1/100.0)
+            v = np.array([0, 0, dz])
+            vc = list(np.dot(v, cart_cov)) + [0, 0, 0]
+            velo_pub.publish(kinova_msgs.msg.PoseVelocity(*vc))
+            rospy.sleep(1/100.0)
+    
 
     MOVING = False
 
@@ -125,15 +130,16 @@ def execute_grasp():
     set_finger_positions([8000, 8000])
     rospy.sleep(0.5)
 
-    # Move back up to initial position.
-    gp_base.position.z += initial_offset
-    gp_base.orientation.x = 1
-    gp_base.orientation.y = 0
-    gp_base.orientation.z = 0
-    gp_base.orientation.w = 0
-    move_to_pose(gp_base)
+    if mode == 'force_control':
+        # Move back up to initial position.
+        gp_base.position.z += initial_offset
+        gp_base.orientation.x = 1
+        gp_base.orientation.y = 0
+        gp_base.orientation.z = 0
+        gp_base.orientation.w = 0
+        move_to_pose(gp_base)
 
-    stop_force_srv.call(kinova_msgs.srv.StopRequest())
+        stop_force_srv.call(kinova_msgs.srv.StopRequest())
 
     return
 
@@ -150,11 +156,18 @@ if __name__ == '__main__':
     # stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', std_srvs.srv.Trigger)
 
     # Enable/disable force control.
+    rospy.loginfo('waiting for force control services to come up')
+    rospy.wait_for_service('/m1n6s300_driver/in/start_force_control')
+    rospy.wait_for_service('/m1n6s300_driver/in/stop_force_control')
+    rospy.loginfo('force control services ready')
     start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
     stop_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/stop_force_control', kinova_msgs.srv.Stop)
 
     # Home position.
-    # move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+    #move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+    home_pose = [0.223614305258, -0.139523953199, 0.259922802448], \
+                [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
+    move_to_position(*home_pose)
 
     try:
         while not rospy.is_shutdown():
@@ -163,12 +176,16 @@ if __name__ == '__main__':
             set_finger_positions([0, 0])
             rospy.sleep(0.5)
 
-            raw_input('Press Enter to Start.')
+            option = raw_input("Press 'p' for position control, no checking, any other key for force control (recommended)")
+            if option == 'p':
+                mode = 'position_control'
+            else:
+                mode = 'force_control'
 
             # start_record_srv(std_srvs.srv.TriggerRequest())
             rospy.sleep(0.5)
-            execute_grasp()
-            # move_to_position([0, -0.38, 0.25], [0.99, 0, 0, np.sqrt(1-0.99**2)])
+            execute_grasp(mode)
+            move_to_position(*home_pose)
             rospy.sleep(0.5)
             # stop_record_srv(std_srvs.srv.TriggerRequest())
 

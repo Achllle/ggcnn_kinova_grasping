@@ -35,7 +35,8 @@ CURR_DEPTH = 350  # Depth measured from camera.
 
 SERVO = False
 
-HOME = [0.41, 0.04, 0.19], [0.99, -0.13, 0.02, -0.03]
+HOME = [0.223614305258, -0.139523953199, 0.259922802448], \
+       [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
 # HOME = [0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)]
 
 class Averager():
@@ -136,6 +137,7 @@ def command_callback(msg):
 
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
+	# TODO: analyze this, seems very hardcoded
         g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers.
         g_pose.orientation.w = 1
         p_gripper = convert_pose(g_pose, 'm1n6s300_end_effector', 'm1n6s300_link_base')
