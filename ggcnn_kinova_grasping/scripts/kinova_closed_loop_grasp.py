@@ -23,7 +23,8 @@ MAX_ROTATION = 1.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
-MIN_Z = 0.01
+# DEBUG: Achille changed MIN_Z from 0.01 to -0.02 as our robot is mounted ~three cm higher than in their setup
+MIN_Z = -0.02
 CURR_Z = 0.35
 CURR_FORCE = 0.0
 GOAL_Z = 0.0
@@ -38,6 +39,8 @@ SERVO = False
 HOME = [0.223614305258, -0.139523953199, 0.259922802448], \
        [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
 # HOME = [0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)]
+
+LATCHED = False
 
 class Averager():
     def __init__(self, inputs, time_steps):
@@ -82,6 +85,7 @@ def command_callback(msg):
     global GOAL_Z
     global GRIP_WIDTH_MM
     global VELO_COV
+    global LATCHED # if we get under 30cm away from object, keep going there no matter what
 
     CURR_DEPTH = msg.data[5]
 
@@ -90,8 +94,8 @@ def command_callback(msg):
         d = list(msg.data)
 
         # PBVS Method.
-
-        if d[2] > 0.150:  # Min effective range of the realsense.
+        # DEBUG: temporarily increase to 30cm so we can see what happens
+        if d[2] > 0.28 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
             # 0.07 is distance from end effector (CURR_Z) to camera.
@@ -122,6 +126,9 @@ def command_callback(msg):
         else:
             gp_base = geometry_msgs.msg.Pose()
             av = pose_averager.evaluate()
+            if not LATCHED:
+                rospy.loginfo('LATCHING')
+                LATCHED = True
 
         # Average pose in base frame.
         gp_base.position.x = av[0]
@@ -134,6 +141,15 @@ def command_callback(msg):
         gp_base.orientation.y = q[1]
         gp_base.orientation.z = q[2]
         gp_base.orientation.w = q[3]
+
+        ########### Added by Achille: hardcode position to check if vel control is working ok
+        # gp_base.position.x = 0.281553024819
+        # gp_base.position.y = -0.181809716118
+        # gp_base.position.z = -0.054720383531
+        # gp_base.orientation.x = 0.9628663237748157
+        # gp_base.orientation.y = -0.269978596448629
+        # gp_base.orientation.z = -1.6531421198955424e-17
+        # gp_base.orientation.w = 5.895855807088036e-17
 
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
@@ -152,11 +168,29 @@ def command_callback(msg):
         # Orientation velocity control is done in the frame of the gripper,
         #  so figure out the rotation offset in the end effector frame.
         gp_gripper = convert_pose(gp_base, 'm1n6s300_link_base', 'm1n6s300_end_effector')
+        # DEBUG: base link frame for sending the gripper to vertical roll and pitch
+        # unit_quat = tft.quaternion_from_euler(3.141592653, 0, 0, 'sxyz')
+        # unit_pose = geometry_msgs.msg.Pose()
+        # unit_pose.orientation.x = unit_quat[0]
+        # unit_pose.orientation.y = unit_quat[1]
+        # unit_pose.orientation.z = unit_quat[2]
+        # unit_pose.orientation.w = unit_quat[3]
+        # unit_gripper = convert_pose(unit_pose, 'm1n6s300_link_base', 'm1n6s300_end_effector')
         pgo = gp_gripper.orientation
         q1 = [pgo.x, pgo.y, pgo.z, pgo.w]
         e = tft.euler_from_quaternion(q1)
+
+        # DEBUG: instead of sending it to the ggcnn roll and pitch,
+        # send it to vertical position
+        # pgo_u = unit_gripper.orientation
+        # q_u = [pgo_u.x, pgo_u.y, pgo_u.z, pgo_u.w]
+        # e_u = tft.euler_from_quaternion(q_u)
+
         dr = 1 * e[0]
+        # dr = 0.4 * e[0]
         dp = 1 * e[1]
+        # dp = 0.4 * e[1]
+        # print dr, dp
         dyaw = 1 * e[2]
 
         vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
@@ -171,9 +205,12 @@ def command_callback(msg):
         CURRENT_VELOCITY[1] = vc[1]
         CURRENT_VELOCITY[2] = vc[2]
 
-        CURRENT_VELOCITY[3] = -1 * dp
-        CURRENT_VELOCITY[4] = 1 * dr
+        # CURRENT_VELOCITY[3] = 1 * dp
+        # CURRENT_VELOCITY[4] = 1 * dr
         CURRENT_VELOCITY[5] = max(min(1 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
+        CURRENT_VELOCITY[3] = 0
+        CURRENT_VELOCITY[4] = 0
+        # CURRENT_VELOCITY[5] = 0
 
 
 def robot_wrench_callback(msg):
@@ -220,8 +257,13 @@ def robot_position_callback(msg):
     CURR_Z = msg.pose.position.z
 
     # Stop Conditions.
-    if CURR_Z < MIN_Z or (CURR_Z - 0.01) < GOAL_Z or CURR_FORCE < -5.0:
+    # DEBUG: Achille changed curr_force < -5.0 to -8.0
+    if CURR_Z < MIN_Z or (CURR_Z - 0.01) < GOAL_Z or CURR_FORCE < -8.0:
         if SERVO:
+            
+            # DEBUG
+            rospy.loginfo('STOPPING: CURR_Z < MIN_Z: {}, (CURR_Z - 0.01) < GOAL_Z: {}, or CURR_FORCE < -8.0: {}'.format(CURR_Z < MIN_Z, (CURR_Z - 0.01) < GOAL_Z, CURR_FORCE < -8.0))
+
             SERVO = False
 
             # Grip.
@@ -274,8 +316,8 @@ if __name__ == '__main__':
     finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
     r = rospy.Rate(100)
 
-    rospy.loginfo('moving home...')
-    move_to_position(*HOME)
+    # rospy.loginfo('moving home...')
+    # move_to_position(*HOME)
     rospy.sleep(0.5)
     set_finger_positions([0, 0])
     rospy.sleep(0.5)

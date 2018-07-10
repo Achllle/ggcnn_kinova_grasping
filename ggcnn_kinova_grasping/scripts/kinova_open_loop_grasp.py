@@ -84,6 +84,8 @@ def execute_grasp(mode):
     # for visualization: last arg is the duration of the publishment
     publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 15)
 
+    rospy.loginfo('gp: {}'.format(gp_base))
+
     # Offset for initial pose.
     initial_offset = 0.20
     if mode == 'force_control':

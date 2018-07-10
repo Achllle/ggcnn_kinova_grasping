@@ -81,8 +81,8 @@ def command_callback(msg):
     d = list(msg.data)
 
     # PBVS Method.
-
-    if d[2] > 0.150:  # Min effective range of the realsense.
+    # DEBUG achille changed range to 30 iso 15 based on experimentation
+    if d[2] > 0.30:  # Min effective range of the realsense.
 
         # Convert width in pixels to mm.
         # 0.07 is distance from end effector (CURR_Z) to camera.
