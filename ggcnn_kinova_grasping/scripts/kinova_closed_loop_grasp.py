@@ -153,7 +153,7 @@ def command_callback(msg):
 
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
-	# TODO: analyze this, seems very hardcoded
+	    # TODO: analyze this, seems very hardcoded
         g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers.
         g_pose.orientation.w = 1
         p_gripper = convert_pose(g_pose, 'm1n6s300_end_effector', 'm1n6s300_link_base')
@@ -316,8 +316,8 @@ if __name__ == '__main__':
     finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
     r = rospy.Rate(100)
 
-    # rospy.loginfo('moving home...')
-    # move_to_position(*HOME)
+    rospy.loginfo('moving home...')
+    move_to_position(*HOME)
     rospy.sleep(0.5)
     set_finger_positions([0, 0])
     rospy.sleep(0.5)
