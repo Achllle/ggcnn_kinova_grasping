@@ -1,11 +1,13 @@
 <launch>
 
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch" />
+    <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
+        <arg name="json_file_path" value="/home/ashis/realsense_settings.json"/> 
+    </include>
     <include file="$(find ggcnn_kinova_grasping)/launch/wrist_camera_peanut.launch" />
-    <node name="ggcnn"
+    <!-- <node name="ggcnn"
           pkg="ggcnn_kinova_grasping"
           type="run_ggcnn.py"
           output="screen"
-    />
+    /> -->
 
 </launch>

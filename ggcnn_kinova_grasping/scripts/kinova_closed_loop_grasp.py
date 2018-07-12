@@ -14,7 +14,7 @@ from helpers.transforms import current_robot_pose, publish_tf_quaterion_as_trans
 from helpers.covariance import generate_cartesian_covariance
 
 from helpers.gripper_action_client import set_finger_positions
-from helpers.position_action_client import move_to_position
+from helpers.position_action_client import move_to_position, move_to_home
 
 MAX_VELO_X = 0.25
 MAX_VELO_Y = 0.15
@@ -36,11 +36,14 @@ CURR_DEPTH = 350  # Depth measured from camera.
 
 SERVO = False
 
-HOME = [0.223614305258, -0.139523953199, 0.259922802448], \
+HOME = [0.343614305258, -0.109523953199, 0.259922802448], \
        [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
+# HOME = [0.223614305258, -0.139523953199, 0.259922802448], \
+#        [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
 # HOME = [0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)]
 
 LATCHED = False
+LAST_POSE = None
 
 class Averager():
     def __init__(self, inputs, time_steps):
@@ -73,7 +76,7 @@ class Averager():
         self.curr = 0
         self.been_reset = True
 
-
+# originally (4,3)
 pose_averager = Averager(4, 3)
 
 
@@ -86,6 +89,7 @@ def command_callback(msg):
     global GRIP_WIDTH_MM
     global VELO_COV
     global LATCHED # if we get under 30cm away from object, keep going there no matter what
+    global LAST_POSE #grabs the last grasp pose and makes it available
 
     CURR_DEPTH = msg.data[5]
 
@@ -95,6 +99,7 @@ def command_callback(msg):
 
         # PBVS Method.
         # DEBUG: temporarily increase to 30cm so we can see what happens
+        rospy.loginfo("d[2]: {} | LATCH: {}".format(d[2], LATCHED))
         if d[2] > 0.28 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
@@ -154,9 +159,10 @@ def command_callback(msg):
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
 	    # TODO: analyze this, seems very hardcoded
-        g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers.
+        g_pose.position.z = 0.005  # Offset from the end_effector frame to the actual position of the fingers.
         g_pose.orientation.w = 1
         p_gripper = convert_pose(g_pose, 'm1n6s300_end_effector', 'm1n6s300_link_base')
+        LAST_POSE = p_gripper
 
         publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 0.0)
 
@@ -195,7 +201,7 @@ def command_callback(msg):
 
         vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 2.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
-        vz = max(min(dz - 0.04, MAX_VELO_Z), -1.0*MAX_VELO_Z)
+        vz = max(min(dz - 0.04, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
 
         # Apply a nonlinearity to the velocity
         v = np.array([vx, vy, vz])
@@ -253,38 +259,50 @@ def robot_position_callback(msg):
     global start_record_srv
     global stop_record_srv
     global HOME
+    global LATCHED
 
     CURR_Z = msg.pose.position.z
 
     # Stop Conditions.
     # DEBUG: Achille changed curr_force < -5.0 to -8.0
-    if CURR_Z < MIN_Z or (CURR_Z - 0.01) < GOAL_Z or CURR_FORCE < -8.0:
+    if CURR_Z < MIN_Z or (CURR_Z - 0.005) < GOAL_Z or CURR_FORCE < -8.0:
         if SERVO:
             
             # DEBUG
             rospy.loginfo('STOPPING: CURR_Z < MIN_Z: {}, (CURR_Z - 0.01) < GOAL_Z: {}, or CURR_FORCE < -8.0: {}'.format(CURR_Z < MIN_Z, (CURR_Z - 0.01) < GOAL_Z, CURR_FORCE < -8.0))
-
+            velo_pub.publish(kinova_msgs.msg.PoseVelocity(*[0,0,0,0,0,0])) #maybe this will free the controller up
             SERVO = False
 
             # Grip.
             rospy.sleep(0.1)
-            set_finger_positions([8000, 8000])
+            set_finger_positions([8000, 8000, 8000])
             rospy.sleep(0.5)
 
+            moved_success = False
+            # while not moved_success:
+            # raw_input("Enter to move to home.")
             # Move Home.
             rospy.loginfo('moving home...')
-            move_to_position(*HOME)
+            move_to_home()
+            moved_sucess = move_to_position(*HOME)
+            rospy.loginfo("Moved to home: {}".format(moved_sucess))
             rospy.sleep(0.25)
+
+                # if not moved_sucess:
+                #     rospy.loginfo("Attempting to move upwards...")
+                #     velo_pub.publish(kinova_msgs.msg.PoseVelocity(*[0,0,0.5,0,0,0]))
+                    # rospy.Duration(10.0)
+                    # velo_pub.publish(kinova_msgs.msg.PoseVelocity(*[0,0,0,0,0,0]))
 
             # stop_record_srv(std_srvs.srv.TriggerRequest())
 
             raw_input('Press Enter to Complete')
-
+            LATCHED = False
             # Generate a control nonlinearity for this run.
             VELO_COV = generate_cartesian_covariance(0.0)
 
             # Open Fingers
-            set_finger_positions([0, 0])
+            set_finger_positions([0, 0, 0])
             rospy.sleep(1.0)
 
             pose_averager.reset()
@@ -295,9 +313,21 @@ def robot_position_callback(msg):
             rospy.sleep(0.5)
             SERVO = True
 
+def move_to_pose(pose):
+    # Wrapper for move to position.
+    p = pose.position
+    o = pose.orientation
+    move_to_position([p.x, p.y, p.z], [o.x, o.y, o.z, o.w])
 
 if __name__ == '__main__':
     rospy.init_node('kinova_velocity_control')
+
+    rospy.loginfo('moving home...')
+    move_to_position(*HOME)
+    rospy.sleep(0.5)
+    rospy.loginfo('opening gripper...')
+    set_finger_positions([0, 0, 0])
+    rospy.sleep(0.5)
 
     position_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
     finger_sub = rospy.Subscriber('/m1n6s300_driver/out/finger_position', kinova_msgs.msg.FingerPosition, finger_position_callback, queue_size=1)
@@ -316,11 +346,12 @@ if __name__ == '__main__':
     finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
     r = rospy.Rate(100)
 
-    rospy.loginfo('moving home...')
-    move_to_position(*HOME)
-    rospy.sleep(0.5)
-    set_finger_positions([0, 0])
-    rospy.sleep(0.5)
+    # rospy.loginfo('moving home...')
+    # move_to_position(*HOME)
+    # rospy.sleep(0.5)
+    # rospy.loginfo('opening gripper...')
+    # set_finger_positions([0, 0])
+    # rospy.sleep(0.5)
 
     SERVO = True
 

@@ -4,7 +4,7 @@ import rospy
 import actionlib
 import kinova_msgs.msg
 
-finger_maxTurn = 7400
+finger_maxTurn = 6300
 
 def set_finger_positions(finger_positions):
     """Send a gripper goal to the action server."""
@@ -13,10 +13,13 @@ def set_finger_positions(finger_positions):
 
     finger_positions[0] = min(finger_maxTurn, finger_positions[0])
     finger_positions[1] = min(finger_maxTurn, finger_positions[1])
+    finger_positions[2] = min(finger_maxTurn, finger_positions[2])
 
     goal = kinova_msgs.msg.SetFingersPositionGoal()
     goal.fingers.finger1 = float(finger_positions[0])
     goal.fingers.finger2 = float(finger_positions[1])
+    goal.fingers.finger3 = float(finger_positions[2])
+
     # The MICO arm has only two fingers, but the same action definition is used
     if len(finger_positions) < 3:
         goal.fingers.finger3 = 0.0
