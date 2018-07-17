@@ -20,18 +20,20 @@ def set_finger_positions(finger_positions):
     goal.fingers.finger2 = float(finger_positions[1])
     goal.fingers.finger3 = float(finger_positions[2])
 
-    # The MICO arm has only two fingers, but the same action definition is used
-    if len(finger_positions) < 3:
-        goal.fingers.finger3 = 0.0
-    else:
-        goal.fingers.finger3 = float(finger_positions[2])
+    # # The MICO arm has only two fingers, but the same action definition is used
+    # if len(finger_positions) < 3:
+    #     goal.fingers.finger3 = 0.0
+    # else:
+    #     goal.fingers.finger3 = float(finger_positions[2])
     gripper_client.send_goal(goal)
-    if gripper_client.wait_for_result(rospy.Duration(5.0)):
-        return gripper_client.get_result()
-    else:
-        gripper_client.cancel_all_goals()
-        rospy.WARN('        the gripper action timed-out')
-        return None
+    ## Achille commented out to make nonblocking.
+    # if gripper_client.wait_for_result(rospy.Duration(3.0)):
+    #     return gripper_client.get_result()
+    # else:
+    #     gripper_client.cancel_all_goals()
+    #     rospy.WARN('        the gripper action timed-out')
+    #     return None
+    return True
 
 action_address = '/m1n6s300_driver/fingers_action/finger_positions'
 gripper_client = actionlib.SimpleActionClient(action_address, kinova_msgs.msg.SetFingersPositionAction)
