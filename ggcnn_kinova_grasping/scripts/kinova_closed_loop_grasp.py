@@ -107,8 +107,9 @@ def command_callback(msg):
             # 0.1 is approx degrees per pixel for the realsense.
             if d[2] > 0.25:
                 GRIP_WIDTH_PX = msg.data[4]
-                GRIP_WIDTH_MM = 2 * ((CURR_Z + 0.07)) * np.tan(0.1 * GRIP_WIDTH_PX / 2.0 / 180.0 * np.pi) * 1000
-
+                # Achille added 20mm here to account for different gripper
+                GRIP_WIDTH_MM = 2 * ((CURR_Z + 0.07)) * np.tan(0.1 * GRIP_WIDTH_PX / 2.0 / 180.0 * np.pi) * 1000 + 20
+                rospy.loginfo('GRIP WIDTH: {}'.format(GRIP_WIDTH_MM))
             # Construct the Pose in the frame of the camera.
             gp = geometry_msgs.msg.Pose()
             gp.position.x = d[0]
@@ -159,7 +160,7 @@ def command_callback(msg):
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
 	    # TODO: analyze this, seems very hardcoded
-        g_pose.position.z = 0.005  # Offset from the end_effector frame to the actual position of the fingers.
+        g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers.
         g_pose.orientation.w = 1
         p_gripper = convert_pose(g_pose, 'm1n6s300_end_effector', 'm1n6s300_link_base')
         LAST_POSE = p_gripper
@@ -233,20 +234,25 @@ def finger_position_callback(msg):
     global GRIP_WIDTH_MM
 
     # Only move the fingers when we're 200mm from the table and servoing.
-    if CURR_Z < 0.200 and CURR_DEPTH > 80 and SERVO:
-        # 4000 ~= 70mm
-        g = min((1 - (min(GRIP_WIDTH_MM, 70)/70)) * (6800-4000) + 4000, 5500)
+    # if CURR_Z < 0.200 and CURR_DEPTH > 80 and SERVO:
+    #     # 4000 ~= 70mm
+    #     g = min((1 - (min(GRIP_WIDTH_MM, 70)/70)) * (6800-4000) + 4000, 5500)
 
-        # Move fast from fully open.
-        gain = 2
-        if CURR_Z > 0.12:
-            gain = 5
+    #     if abs(msg.finger1 - g) > 100:
+    #         rospy.loginfo('finger pos {} and desired grasp width: {}'.format(msg.finger1, g))
+    #         set_finger_positions([g, g, g])
 
-        err = gain * (g - msg.finger1)
-        CURRENT_FINGER_VELOCITY = [err, err, 0]
+    #     # Move fast from fully open.
+    #     gain = 2
+    #     if CURR_Z > 0.12:
+    #         gain = 5
 
-    else:
-        CURRENT_FINGER_VELOCITY = [0, 0, 0]
+    #     err = gain * (g - msg.finger1)
+    #     CURRENT_FINGER_VELOCITY = [err, err, 0]
+    #     rospy.loginfo('CURRENT_FINGER_VELOCITY: {}'.format(CURRENT_FINGER_VELOCITY))
+
+    # else:
+    #     CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
 
 def robot_position_callback(msg):
@@ -310,6 +316,10 @@ def robot_position_callback(msg):
             raw_input('Press Enter to Start')
 
             # start_record_srv(std_srvs.srv.TriggerRequest())
+            
+            # DEBUG: Achille added opening gripper to hardcoded pose
+            set_finger_positions([3000,3000,3000])
+            
             rospy.sleep(0.5)
             SERVO = True
 
@@ -326,7 +336,7 @@ if __name__ == '__main__':
     move_to_position(*HOME)
     rospy.sleep(0.5)
     rospy.loginfo('opening gripper...')
-    set_finger_positions([0, 0, 0])
+    set_finger_positions([3000, 3000, 3000])
     rospy.sleep(0.5)
 
     position_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
@@ -343,7 +353,7 @@ if __name__ == '__main__':
 
     # Publish velocity at 100Hz.
     velo_pub = rospy.Publisher('/m1n6s300_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
-    finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
+    # finger_pub = rospy.Publisher('/m1n6s300_driver/in/finger_velocity', kinova_msgs.msg.FingerPosition, queue_size=1)
     r = rospy.Rate(100)
 
     # rospy.loginfo('moving home...')
@@ -357,6 +367,6 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         if SERVO:
-            finger_pub.publish(kinova_msgs.msg.FingerPosition(*CURRENT_FINGER_VELOCITY))
+            # finger_pub.publish(kinova_msgs.msg.FingerPosition(*CURRENT_FINGER_VELOCITY))
             velo_pub.publish(kinova_msgs.msg.PoseVelocity(*CURRENT_VELOCITY))
         r.sleep()
