@@ -2,7 +2,7 @@
 
     <arg name="ggcnn_model_path" default="$(find ggcnn_kinova_grasping)/../../networks/ggcnn_rss/epoch_29_model.hdf5" />
 
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
         <arg name="json_file_path" value="$(find ggcnn_kinova_grasping)/config/D415_640x480_disparity_shift51.json"/>
     </include>
     <include file="$(find ggcnn_kinova_grasping)/launch/wrist_camera_peanut.launch" />
