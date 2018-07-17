@@ -25,7 +25,7 @@ See also [their README](README.md)
 
 1. `roslaunch kinova_bringup kinova_robot.launch kinova_robotType:=m1n6s300`
 2. `roslaunch m1n6s300_moveit_config m1n6s300_demo.launch`
-3. `roslaunch peanut_moveit arm_execution_wrapper.launch`
+3. `rosrun peanut_moveit arm_execution_wrapper.py`
 4. `roslaunch ggcnn_kinova_grasping launch_all_the_things.launch`
 5. `rosrun ggcnn_kinova_grasping kinova_closed_loop.py`
 
