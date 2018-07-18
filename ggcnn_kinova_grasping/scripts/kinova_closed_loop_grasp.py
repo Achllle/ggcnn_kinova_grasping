@@ -18,8 +18,8 @@ from helpers.position_action_client import move_to_position, move_to_home
 
 MAX_VELO_X = 0.25
 MAX_VELO_Y = 0.15
-MAX_VELO_Z = 0.085
-MAX_ROTATION = 1.5
+MAX_VELO_Z = 0.055
+MAX_ROTATION = 3.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
@@ -64,7 +64,7 @@ class Averager():
                 self.update(v)
         if self.curr >= self.steps:
             self.curr = 0
-        # return self.buffer.mea(axis=0)
+        # return self.buffer.mean(axis=0)
         return np.median(self.buffer, axis=0)
 
     def evaluate(self):
@@ -79,7 +79,7 @@ class Averager():
         self.been_reset = True
 
 # originally (4,3)
-pose_averager = Averager(4, 5)
+pose_averager = Averager(4, 25)
 
 
 def command_callback(msg):
@@ -202,9 +202,10 @@ def command_callback(msg):
         # print dr, dp
         dyaw = 1 * e[2]
 
-        vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
-        vy = max(min(dy * 2.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
-        vz = max(min(dz - 0.04, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
+        vx = max(min(dx * 3.5, MAX_VELO_X), -1.0*MAX_VELO_X)
+        vy = max(min(dy * 3.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
+        # vz = max(min(-0.12, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
+        vz = -0.06
 
         # Apply a nonlinearity to the velocity
         v = np.array([vx, vy, vz])
@@ -216,7 +217,7 @@ def command_callback(msg):
 
         # CURRENT_VELOCITY[3] = 1 * dp
         # CURRENT_VELOCITY[4] = 1 * dr
-        CURRENT_VELOCITY[5] = max(min(1 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
+        CURRENT_VELOCITY[5] = max(min(4 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
         CURRENT_VELOCITY[3] = 0
         CURRENT_VELOCITY[4] = 0
         # CURRENT_VELOCITY[5] = 0
@@ -272,12 +273,12 @@ def robot_position_callback(msg):
     CURR_Z = msg.pose.position.z
 
     # Stop Conditions.
-    # DEBUG: Achille changed curr_force < -5.0 to -8.0
-    if CURR_Z < MIN_Z or (CURR_Z - 0.01) < GOAL_Z or CURR_FORCE < -8.0:
+    # DEBUG: Achille changed curr_force < -5.0 to -7.0
+    if CURR_Z < MIN_Z or (CURR_Z - 0.005) < GOAL_Z or CURR_FORCE < -7.0:
         if SERVO:
             
             # DEBUG
-            rospy.loginfo('STOPPING: CURR_Z < MIN_Z: {}, (CURR_Z - 0.01) < GOAL_Z: {}, or CURR_FORCE < -8.0: {}'.format(CURR_Z < MIN_Z, (CURR_Z - 0.01) < GOAL_Z, CURR_FORCE < -8.0))
+            rospy.loginfo('STOPPING: CURR_Z < MIN_Z: {}, (CURR_Z - 0.01) < GOAL_Z: {}, or CURR_FORCE < -8.0: {}'.format(CURR_Z < MIN_Z, (CURR_Z - 0.005) < GOAL_Z, CURR_FORCE < -7.0))
             velo_pub.publish(kinova_msgs.msg.PoseVelocity(*[0,0,0,0,0,0])) #maybe this will free the controller up
             SERVO = False
 
@@ -289,9 +290,19 @@ def robot_position_callback(msg):
             rospy.loginfo('moving to dropoff')
             move_to_position([0.02, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
 
-            raw_input('Press any key to complete')
+            inp = raw_input('Press u to unwrap, any other key to continue')
+            if inp == 'u':
+                import time
+                joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
+                time1 = time.time()
+                rat = rospy.Rate(100)
+                while time.time() - time1 < 9:
+                    joint_pub.publish(0,0,0,0,0,-60,0)
+
             set_finger_positions([0, 0, 0])
             rospy.sleep(1)
+
+            move_to_home()
 
             moved_sucess = move_to_position(*HOME)
             rospy.loginfo("Moved to home: {}".format(moved_sucess))
@@ -315,7 +326,7 @@ def robot_position_callback(msg):
             # start_record_srv(std_srvs.srv.TriggerRequest())
             
             # DEBUG: Achille added opening gripper to hardcoded pose
-            set_finger_positions([3000,3000,3000])
+            set_finger_positions([2000,2000,2000])
             
             rospy.sleep(0.5)
             SERVO = True
@@ -330,10 +341,11 @@ if __name__ == '__main__':
     rospy.init_node('kinova_velocity_control')
 
     rospy.loginfo('moving home...')
+    move_to_home()
     move_to_position(*HOME)
     rospy.sleep(0.5)
     rospy.loginfo('opening gripper...')
-    set_finger_positions([3000, 3000, 3000])
+    set_finger_positions([2000, 2000, 2000])
     rospy.sleep(0.5)
 
     position_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
