@@ -13,13 +13,6 @@ import tf.transformations as tft
 from helpers.transforms import current_robot_pose, publish_tf_quaterion_as_transform, convert_pose, publish_pose_as_transform
 from helpers.covariance import generate_cartesian_covariance
 
-from helpers.gripper_action_client import set_finger_positions
-from helpers.position_action_client import move_to_position
-
-MAX_VELO_X = 0.25
-MAX_VELO_Y = 0.15
-MAX_VELO_Z = 0.085
-MAX_ROTATION = 1.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
@@ -27,8 +20,6 @@ MIN_Z = 0.01
 CURR_Z = 0.35
 CURR_FORCE = 0.0
 GOAL_Z = 0.0
-
-VELO_COV = generate_cartesian_covariance(0)
 
 GRIP_WIDTH_MM = 70
 CURR_DEPTH = 350  # Depth measured from camera.
@@ -52,20 +43,21 @@ class Averager():
                 self.update(v)
         if self.curr >= self.steps:
             self.curr = 0
-        return self.buffer.mean(axis=0)
+        # return self.buffer.mean(axis=0)
+        return np.median(self.buffer, axis=0)
 
     def evaluate(self):
         if self.steps == 1:
             return self.buffer
-        return self.buffer.mean(axis=0)
+        # return self.buffer.mean(axis=0)
+        return np.median(self.buffer, axis=0)
 
     def reset(self):
         self.buffer *= 0
         self.curr = 0
         self.been_reset = True
 
-
-pose_averager = Averager(4, 3)
+pose_averager = Averager(4, 25)
 
 
 def command_callback(msg):
@@ -74,15 +66,13 @@ def command_callback(msg):
     global pose_averager
     global GOAL_Z
     global GRIP_WIDTH_MM
-    global VELO_COV
 
     CURR_DEPTH = msg.data[5]
 
     d = list(msg.data)
 
     # PBVS Method.
-    # DEBUG achille changed range to 30 iso 15 based on experimentation
-    if d[2] > 0.30:  # Min effective range of the realsense.
+    if d[2] > 0.18:  # Min effective range of the realsense.
 
         # Convert width in pixels to mm.
         # 0.07 is distance from end effector (CURR_Z) to camera.
@@ -113,6 +103,9 @@ def command_callback(msg):
     else:
         gp_base = geometry_msgs.msg.Pose()
         av = pose_averager.evaluate()
+        if not LATCHED:
+            rospy.loginfo('LATCHING')
+            LATCHED = True
 
     # Average pose in base frame.
     gp_base.position.x = av[0]
@@ -130,11 +123,9 @@ def command_callback(msg):
 
 
 if __name__ == '__main__':
-    rospy.init_node('kinova_velocity_control')
+    rospy.init_node('ggcnn_filtered_prediction_publisher')
+    rospy.loginfo('starting prediction publisher.')
 
-    # position_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', geometry_msgs.msg.PoseStamped, robot_position_callback, queue_size=1)
     command_sub = rospy.Subscriber('/ggcnn/out/command', std_msgs.msg.Float32MultiArray, command_callback, queue_size=1)
-
-    rospy.loginfo('publishing the frame found by ggcnn!')
 
     rospy.spin()
