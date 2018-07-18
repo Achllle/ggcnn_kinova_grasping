@@ -64,12 +64,14 @@ class Averager():
                 self.update(v)
         if self.curr >= self.steps:
             self.curr = 0
-        return self.buffer.mean(axis=0)
+        # return self.buffer.mea(axis=0)
+        return np.median(self.buffer, axis=0)
 
     def evaluate(self):
         if self.steps == 1:
             return self.buffer
-        return self.buffer.mean(axis=0)
+        # return self.buffer.mean(axis=0)
+        return np.median(self.buffer, axis=0)
 
     def reset(self):
         self.buffer *= 0
@@ -77,7 +79,7 @@ class Averager():
         self.been_reset = True
 
 # originally (4,3)
-pose_averager = Averager(4, 3)
+pose_averager = Averager(4, 5)
 
 
 def command_callback(msg):
@@ -271,7 +273,7 @@ def robot_position_callback(msg):
 
     # Stop Conditions.
     # DEBUG: Achille changed curr_force < -5.0 to -8.0
-    if CURR_Z < MIN_Z or (CURR_Z - 0.005) < GOAL_Z or CURR_FORCE < -8.0:
+    if CURR_Z < MIN_Z or (CURR_Z - 0.01) < GOAL_Z or CURR_FORCE < -8.0:
         if SERVO:
             
             # DEBUG
@@ -284,26 +286,23 @@ def robot_position_callback(msg):
             set_finger_positions([8000, 8000, 8000])
             rospy.sleep(0.5)
 
-            moved_success = False
-            # while not moved_success:
-            # raw_input("Enter to move to home.")
-            # Move Home.
-            rospy.loginfo('moving home...')
-            move_to_home()
+            rospy.loginfo('moving to dropoff')
+            move_to_position([0.02, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
+
+            raw_input('Press any key to complete')
+            set_finger_positions([0, 0, 0])
+            rospy.sleep(1)
+
             moved_sucess = move_to_position(*HOME)
             rospy.loginfo("Moved to home: {}".format(moved_sucess))
             rospy.sleep(0.25)
 
-                # if not moved_sucess:
-                #     rospy.loginfo("Attempting to move upwards...")
-                #     velo_pub.publish(kinova_msgs.msg.PoseVelocity(*[0,0,0.5,0,0,0]))
-                    # rospy.Duration(10.0)
-                    # velo_pub.publish(kinova_msgs.msg.PoseVelocity(*[0,0,0,0,0,0]))
-
             # stop_record_srv(std_srvs.srv.TriggerRequest())
 
-            raw_input('Press Enter to Complete')
             LATCHED = False
+
+            raw_input('Press Enter to Start')
+
             # Generate a control nonlinearity for this run.
             VELO_COV = generate_cartesian_covariance(0.0)
 
@@ -312,8 +311,6 @@ def robot_position_callback(msg):
             rospy.sleep(1.0)
 
             pose_averager.reset()
-
-            raw_input('Press Enter to Start')
 
             # start_record_srv(std_srvs.srv.TriggerRequest())
             
