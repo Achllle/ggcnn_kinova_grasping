@@ -102,7 +102,7 @@ def command_callback(msg):
         # PBVS Method.
         # DEBUG: temporarily increase to 30cm so we can see what happens
         rospy.loginfo("d[2]: {} | LATCH: {}".format(d[2], LATCHED))
-        if d[2] > 0.28 and not LATCHED:  # Min effective range of the realsense.
+        if d[2] > 0.18 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
             # 0.07 is distance from end effector (CURR_Z) to camera.
@@ -205,7 +205,7 @@ def command_callback(msg):
         vx = max(min(dx * 3.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 3.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
         # vz = max(min(-0.12, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
-        vz = -0.06
+        vz = -0.03
 
         # Apply a nonlinearity to the velocity
         v = np.array([vx, vy, vz])
