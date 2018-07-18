@@ -38,6 +38,10 @@ action_address = 'arm_action_wrapper'
 position_client = None
 
 def move_to_home():
+    global position_client
+    if position_client is None:
+        init()    
+
     goal = ArmGoal()
     goal.move_target = "Home"
     position_client.send_goal(goal)
@@ -52,4 +56,4 @@ def init():
     global position_client
     position_client = actionlib.SimpleActionClient(action_address, ArmAction)
     position_client.wait_for_server()
-    move_to_home()
+    # move_to_home()
