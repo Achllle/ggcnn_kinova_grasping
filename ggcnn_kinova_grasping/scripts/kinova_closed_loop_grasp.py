@@ -7,14 +7,17 @@ import numpy as np
 import kinova_msgs.srv
 import std_msgs.msg
 import geometry_msgs.msg
+from std_srvs.srv import Trigger, TriggerRequest # for recording
+from data_recording.srv import Record, RecordRequest # for recording
+from visualization_msgs.msg import Marker
 
 import tf.transformations as tft
 
 from helpers.transforms import current_robot_pose, publish_tf_quaterion_as_transform, convert_pose, publish_pose_as_transform
 from helpers.covariance import generate_cartesian_covariance
-
 from helpers.gripper_action_client import set_finger_positions
 from helpers.position_action_client import move_to_position, move_to_home
+from helpers.utils import create_text_marker
 
 MAX_VELO_X = 0.25
 MAX_VELO_Y = 0.15
@@ -92,6 +95,7 @@ def command_callback(msg):
     global VELO_COV
     global LATCHED # if we get under 30cm away from object, keep going there no matter what
     global LAST_POSE #grabs the last grasp pose and makes it available
+    global annotation_pub
 
     CURR_DEPTH = msg.data[5]
 
@@ -137,6 +141,8 @@ def command_callback(msg):
             if not LATCHED:
                 rospy.loginfo('LATCHING')
                 LATCHED = True
+                latch_msg = create_text_marker('Latching!', [0.1, 0.1, 0], frame_id='/m1n6s300_end_effector')
+                annotation_pub.publish(latch_msg)
 
         # Average pose in base frame.
         gp_base.position.x = av[0]
@@ -308,7 +314,7 @@ def robot_position_callback(msg):
             rospy.loginfo("Moved to home: {}".format(moved_sucess))
             rospy.sleep(0.25)
 
-            # stop_record_srv(std_srvs.srv.TriggerRequest())
+            stop_record_srv(TriggerRequest())
 
             LATCHED = False
 
@@ -323,8 +329,11 @@ def robot_position_callback(msg):
 
             pose_averager.reset()
 
-            # start_record_srv(std_srvs.srv.TriggerRequest())
-            
+            # generate random nb per illustration for each run
+            nb = np.random.randint(100)
+            start_record_srv(RecordRequest('ggcnn_run_nb' + str(nb)))
+            rospy.loginfo('sstarted logginggfjsdlkjfsdlkfsldkfjlkdjlksjdfjsdlkfjsdlfjslkdfjlflksdjflkjlkjlkjlkj')
+
             # DEBUG: Achille added opening gripper to hardcoded pose
             set_finger_positions([2000,2000,2000])
             
@@ -353,9 +362,13 @@ if __name__ == '__main__':
     wrench_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_wrench', geometry_msgs.msg.WrenchStamped, robot_wrench_callback, queue_size=1)
     command_sub = rospy.Subscriber('/ggcnn/out/command', std_msgs.msg.Float32MultiArray, command_callback, queue_size=1)
 
-    # https://github.com/dougsm/rosbag_recording_services
-    # start_record_srv = rospy.ServiceProxy('/data_recording/start_recording', std_srvs.srv.Trigger)
-    # stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', std_srvs.srv.Trigger)
+    rospy.loginfo('waiting for recording services to come up....')
+    rospy.wait_for_service('/data_recording/start_recording')
+    rospy.wait_for_service('/data_recording/stop_recording')
+    rospy.loginfo('...services are up')
+    start_record_srv = rospy.ServiceProxy('/data_recording/start_recording', Record)
+    stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', Trigger)
+    annotation_pub = rospy.Publisher('/data_recording/annotations', Marker, queue_size=10)
 
     start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
     start_force_srv.call(kinova_msgs.srv.StartRequest())
@@ -373,6 +386,8 @@ if __name__ == '__main__':
     # rospy.sleep(0.5)
 
     SERVO = True
+
+    start_record_srv(RecordRequest('ggcnn_run_nb1'))
 
     while not rospy.is_shutdown():
         if SERVO:
