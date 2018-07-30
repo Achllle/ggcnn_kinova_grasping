@@ -168,7 +168,9 @@ def command_callback(msg):
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
 	    # TODO: analyze this, seems very hardcoded
-        g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers.
+        g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers
+        g_pose.position.y = 0
+        g_pose.position.x = 0.01 #Offset from end_effector frame to where we think the two finger grasp happens
         g_pose.orientation.w = 1
         p_gripper = convert_pose(g_pose, 'm1n6s300_end_effector', 'm1n6s300_link_base')
         LAST_POSE = p_gripper
@@ -211,7 +213,7 @@ def command_callback(msg):
         vx = max(min(dx * 3.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 3.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
         # vz = max(min(-0.12, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
-        vz = -0.03
+        vz = -0.08
 
         # Apply a nonlinearity to the velocity
         v = np.array([vx, vy, vz])
@@ -332,8 +334,7 @@ def robot_position_callback(msg):
             # generate random nb per illustration for each run
             nb = np.random.randint(100)
             start_record_srv(RecordRequest('ggcnn_run_nb' + str(nb)))
-            rospy.loginfo('sstarted logginggfjsdlkjfsdlkfsldkfjlkdjlksjdfjsdlkfjsdlfjslkdfjlflksdjflkjlkjlkjlkj')
-
+            
             # DEBUG: Achille added opening gripper to hardcoded pose
             set_finger_positions([2000,2000,2000])
             

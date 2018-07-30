@@ -12,5 +12,5 @@
           output="screen">
           <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
     </node>
-
+    
 </launch>
