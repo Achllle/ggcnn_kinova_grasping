@@ -26,8 +26,8 @@ MAX_ROTATION = 3.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
-# DEBUG: Achille changed MIN_Z from 0.01 to -0.02 as our robot is mounted ~three cm higher than in their setup
-MIN_Z = -0.02
+# DEBUG: Achille changed MIN_Z from 0.01 to -0.17 as our robot is mounted ~18 cm higher than in their setup
+MIN_Z = -0.17
 CURR_Z = 0.35
 CURR_FORCE = 0.0
 GOAL_Z = 0.0
@@ -106,7 +106,7 @@ def command_callback(msg):
         # PBVS Method.
         # DEBUG: temporarily increase to 30cm so we can see what happens
         rospy.loginfo("d[2]: {} | LATCH: {}".format(d[2], LATCHED))
-        if d[2] > 0.18 and not LATCHED:  # Min effective range of the realsense.
+        if d[2] > 0.22 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
             # 0.07 is distance from end effector (CURR_Z) to camera.
