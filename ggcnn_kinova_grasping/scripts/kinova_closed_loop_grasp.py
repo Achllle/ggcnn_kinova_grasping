@@ -371,6 +371,13 @@ if __name__ == '__main__':
     stop_record_srv = rospy.ServiceProxy('/data_recording/stop_recording', Trigger)
     annotation_pub = rospy.Publisher('/data_recording/annotations', Marker, queue_size=10)
 
+    import signal
+    rospy.on_shutdown(stop_record_srv) # when something else kills this node
+    def handler(signum, frame):
+        stop_record_srv(TriggerRequest())
+        exit(0)
+    signal.signal(signal.SIGINT, handler) # when the user shuts down the node
+
     start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
     start_force_srv.call(kinova_msgs.srv.StartRequest())
 
