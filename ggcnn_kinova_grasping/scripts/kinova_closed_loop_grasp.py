@@ -296,7 +296,7 @@ def robot_position_callback(msg):
             rospy.sleep(0.5)
 
             rospy.loginfo('moving to dropoff')
-            move_to_position([0.02, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
+            move_to_position([0.03, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
 
             inp = raw_input('Press u to unwrap, any other key to continue')
             if inp == 'u':
