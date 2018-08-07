@@ -82,7 +82,7 @@ class Averager():
         self.been_reset = True
 
 # originally (4,3)
-pose_averager = Averager(4, 250)
+pose_averager = Averager(4, 25)
 
 
 def command_callback(msg):
@@ -140,7 +140,7 @@ def command_callback(msg):
             if not LATCHED:
                 rospy.loginfo('LATCHING')
                 LATCHED = True
-                latch_msg = create_text_marker('Latching!', [0.1, 0.1, 0], frame_id='/m1n6s300_end_effector')
+                latch_msg = create_text_marker('Latching!', [0.02, 0.02, 0], frame_id='/m1n6s300_end_effector')
                 annotation_pub.publish(latch_msg)
 
         # Average pose in base frame.
@@ -276,6 +276,8 @@ def robot_position_callback(msg):
     global stop_record_srv
     global HOME
     global LATCHED
+    global run_nb
+    global take_name
 
     CURR_Z = msg.pose.position.z
 
@@ -331,8 +333,8 @@ def robot_position_callback(msg):
             pose_averager.reset()
 
             # generate random nb per illustration for each run
-            nb = np.random.randint(100)
-            start_record_srv(RecordRequest('ggcnn_run_nb' + str(nb)))
+            run_nb += 1
+            start_record_srv(RecordRequest(take_name + str(run_nb)))
             
             # DEBUG: Achille added opening gripper to hardcoded pose
             set_finger_positions([2000,2000,2000])
@@ -394,7 +396,9 @@ if __name__ == '__main__':
 
     SERVO = True
 
-    start_record_srv(RecordRequest('ggcnn_run_nb1'))
+    take_name = 'ggcnn_demo_Aug7_run_nb'
+    run_nb = 1
+    start_record_srv(RecordRequest(take_name + str(run_nb)))
 
     while not rospy.is_shutdown():
         if SERVO:
