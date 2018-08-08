@@ -396,7 +396,7 @@ if __name__ == '__main__':
 
     SERVO = True
 
-    take_name = 'ggcnn_demo_Aug7_run_nb'
+    take_name = 'ggcnn_run_nb'
     run_nb = 1
     start_record_srv(RecordRequest(take_name + str(run_nb)))
 
