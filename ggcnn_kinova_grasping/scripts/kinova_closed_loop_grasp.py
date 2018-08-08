@@ -26,8 +26,8 @@ MAX_ROTATION = 3.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
-# DEBUG: Achille changed MIN_Z from 0.01 to -0.02 as our robot is mounted ~three cm higher than in their setup
-MIN_Z = -0.02
+# DEBUG: Achille changed MIN_Z from 0.01 to -0.1 as our robot is mounted ~10 cm higher than in their setup
+MIN_Z = -0.1
 CURR_Z = 0.35
 CURR_FORCE = 0.0
 GOAL_Z = 0.0
@@ -104,9 +104,8 @@ def command_callback(msg):
         d = list(msg.data)
 
         # PBVS Method.
-        # DEBUG: temporarily increase to 30cm so we can see what happens
         rospy.loginfo("d[2]: {} | LATCH: {}".format(d[2], LATCHED))
-        if d[2] > 0.18 and not LATCHED:  # Min effective range of the realsense.
+        if d[2] > 0.25 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
             # 0.07 is distance from end effector (CURR_Z) to camera.
@@ -141,7 +140,7 @@ def command_callback(msg):
             if not LATCHED:
                 rospy.loginfo('LATCHING')
                 LATCHED = True
-                latch_msg = create_text_marker('Latching!', [0.1, 0.1, 0], frame_id='/m1n6s300_end_effector')
+                latch_msg = create_text_marker('Latching!', [0.02, 0.02, 0], frame_id='/m1n6s300_end_effector')
                 annotation_pub.publish(latch_msg)
 
         # Average pose in base frame.
@@ -277,6 +276,8 @@ def robot_position_callback(msg):
     global stop_record_srv
     global HOME
     global LATCHED
+    global run_nb
+    global take_name
 
     CURR_Z = msg.pose.position.z
 
@@ -296,7 +297,7 @@ def robot_position_callback(msg):
             rospy.sleep(0.5)
 
             rospy.loginfo('moving to dropoff')
-            move_to_position([0.02, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
+            move_to_position([0.17, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
 
             inp = raw_input('Press u to unwrap, any other key to continue')
             if inp == 'u':
@@ -332,8 +333,8 @@ def robot_position_callback(msg):
             pose_averager.reset()
 
             # generate random nb per illustration for each run
-            nb = np.random.randint(100)
-            start_record_srv(RecordRequest('ggcnn_run_nb' + str(nb)))
+            run_nb += 1
+            start_record_srv(RecordRequest(take_name + str(run_nb)))
             
             # DEBUG: Achille added opening gripper to hardcoded pose
             set_finger_positions([2000,2000,2000])
@@ -395,7 +396,9 @@ if __name__ == '__main__':
 
     SERVO = True
 
-    start_record_srv(RecordRequest('ggcnn_run_nb1'))
+    take_name = 'ggcnn_run_nb'
+    run_nb = 1
+    start_record_srv(RecordRequest(take_name + str(run_nb)))
 
     while not rospy.is_shutdown():
         if SERVO:
