@@ -209,8 +209,8 @@ def command_callback(msg):
         # print dr, dp
         dyaw = 1 * e[2]
 
-        vx = max(min(dx * 3.5, MAX_VELO_X), -1.0*MAX_VELO_X)
-        vy = max(min(dy * 3.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
+        vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
+        vy = max(min(dy * 2.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
         # vz = max(min(-0.12, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
         vz = -0.08
 
