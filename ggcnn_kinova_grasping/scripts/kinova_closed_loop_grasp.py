@@ -185,22 +185,22 @@ def command_callback(msg):
         #  so figure out the rotation offset in the end effector frame.
         gp_gripper = convert_pose(gp_base, 'm1n6s300_link_base', 'm1n6s300_end_effector')
         # DEBUG: base link frame for sending the gripper to vertical roll and pitch
-        # unit_quat = tft.quaternion_from_euler(3.141592653, 0, 0, 'sxyz')
-        # unit_pose = geometry_msgs.msg.Pose()
-        # unit_pose.orientation.x = unit_quat[0]
-        # unit_pose.orientation.y = unit_quat[1]
-        # unit_pose.orientation.z = unit_quat[2]
-        # unit_pose.orientation.w = unit_quat[3]
-        # unit_gripper = convert_pose(unit_pose, 'm1n6s300_link_base', 'm1n6s300_end_effector')
-        pgo = gp_gripper.orientation
-        q1 = [pgo.x, pgo.y, pgo.z, pgo.w]
-        e = tft.euler_from_quaternion(q1)
+        unit_quat = tft.quaternion_from_euler(3.141592653, 0, 0, 'sxyz')
+        unit_pose = geometry_msgs.msg.Pose()
+        unit_pose.orientation.x = unit_quat[0]
+        unit_pose.orientation.y = unit_quat[1]
+        unit_pose.orientation.z = unit_quat[2]
+        unit_pose.orientation.w = unit_quat[3]
+        unit_gripper = convert_pose(unit_pose, 'm1n6s300_link_base', 'm1n6s300_end_effector')
+        # pgo = gp_gripper.orientation
+        # q1 = [pgo.x, pgo.y, pgo.z, pgo.w]
+        # e = tft.euler_from_quaternion(q1)
 
         # DEBUG: instead of sending it to the ggcnn roll and pitch,
         # send it to vertical position
-        # pgo_u = unit_gripper.orientation
-        # q_u = [pgo_u.x, pgo_u.y, pgo_u.z, pgo_u.w]
-        # e_u = tft.euler_from_quaternion(q_u)
+        pgo_u = unit_gripper.orientation
+        q_u = [pgo_u.x, pgo_u.y, pgo_u.z, pgo_u.w]
+        e = tft.euler_from_quaternion(q_u)
 
         dr = 1 * e[0]
         # dr = 0.4 * e[0]
@@ -218,15 +218,18 @@ def command_callback(msg):
         v = np.array([vx, vy, vz])
         vc = np.dot(v, VELO_COV)
 
-        CURRENT_VELOCITY[0] = vc[0]
-        CURRENT_VELOCITY[1] = vc[1]
-        CURRENT_VELOCITY[2] = vc[2]
+        # CURRENT_VELOCITY[0] = vc[0]
+        # CURRENT_VELOCITY[1] = vc[1]
+        # CURRENT_VELOCITY[2] = vc[2]
+        CURRENT_VELOCITY[0] = 0
+        CURRENT_VELOCITY[1] = 0
+        CURRENT_VELOCITY[2] = 0
 
-        # CURRENT_VELOCITY[3] = 1 * dp
-        # CURRENT_VELOCITY[4] = 1 * dr
+        CURRENT_VELOCITY[3] = -1 * dp
+        CURRENT_VELOCITY[4] = 1 * dr
         CURRENT_VELOCITY[5] = max(min(4 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
-        CURRENT_VELOCITY[3] = 0
-        CURRENT_VELOCITY[4] = 0
+        # CURRENT_VELOCITY[3] = 0
+        # CURRENT_VELOCITY[4] = 0
         # CURRENT_VELOCITY[5] = 0
 
 
