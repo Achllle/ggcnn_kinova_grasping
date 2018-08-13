@@ -192,7 +192,7 @@ def command_callback(msg):
         # unit_pose.orientation.z = unit_quat[2]
         # unit_pose.orientation.w = unit_quat[3]
         # unit_gripper = convert_pose(unit_pose, 'm1n6s300_link_base', 'm1n6s300_end_effector')
-        pgo = gp_gripper.orientation
+        pgo = gp_base.orientation
         q1 = [pgo.x, pgo.y, pgo.z, pgo.w]
         e = tft.euler_from_quaternion(q1)
 
@@ -203,7 +203,7 @@ def command_callback(msg):
 
         dr = 1.0 * (e[0] - gripper_rpy[0])
         dp = 1.0 * (e[1] - gripper_rpy[1])
-        dy = 1.0 * (e[2] - gripper_rpy[2])
+        dyaw = 1.0 * (e[2] - gripper_rpy[2])
         ###
 
         # DEBUG: instead of sending it to the ggcnn roll and pitch,
@@ -329,7 +329,13 @@ def robot_position_callback(msg):
 
             move_to_home()
 
-            moved_sucess = move_to_position(*HOME)
+            num_retrys = 3
+            for _ in range(num_retrys):
+                moved_sucess = move_to_position(*HOME)
+                if moved_sucess:
+                    break
+                else:
+                    rospy.loginfo("move_to_position failed, retrying")
             rospy.loginfo("Moved to home: {}".format(moved_sucess))
             rospy.sleep(0.25)
 
