@@ -82,7 +82,7 @@ class Averager():
         self.been_reset = True
 
 # originally (4,3)
-pose_averager = Averager(4, 25)
+pose_averager = Averager(4, 2500)
 
 
 def command_callback(msg):
@@ -224,7 +224,7 @@ def command_callback(msg):
 
         CURRENT_VELOCITY[3] = -1.0 * dp
         CURRENT_VELOCITY[4] = 1.0 * dr
-        CURRENT_VELOCITY[5] = max(min(1.0 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
+        CURRENT_VELOCITY[5] = max(min(4.0 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
         # CURRENT_VELOCITY[3] = 0
         # CURRENT_VELOCITY[4] = 0
         # CURRENT_VELOCITY[5] = 0
@@ -300,7 +300,7 @@ def robot_position_callback(msg):
             rospy.sleep(0.5)
 
             # stop recording after a few seconds
-            rospy.Timer(3, stop_recording, oneshot=True)
+            rospy.Timer(rospy.Duration(3), stop_recording, oneshot=True)
 
             rospy.loginfo('moving to dropoff')
             move_to_position([0.17, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
