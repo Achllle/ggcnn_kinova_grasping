@@ -1,0 +1,22 @@
+<launch>
+
+  <!-- Arguments -->
+  <arg name="arm_model"
+       default="m1n6s300"
+       doc="Kinova model number. Default is set to m1n6s300"/>
+
+  <include file="$(eval find('kinova_bringup') + '/launch/' + 'kinova_robot.launch')">
+            <arg name="kinova_robotType" value="$(arg arm_model)"/>
+  </include>
+  <include file="$(eval find(arg('arm_model') + '_moveit_config') + '/launch/'
+                        + arg('arm_model') + '_demo.launch')">
+  </include>
+  <remap from="joint_states_$(arg arm_model)" to="joint_states"/>
+
+  <include file="$(find peanut_moveit)/launch/arm_gripper_execution_wrappers.launch" />
+
+  <include file="$(find ggcnn_kinova_grasping)/launch/launch_all_the_things.launch" />
+
+  <include file="$(find data_recording)/launch/data_recording.launch" />
+
+</launch>
