@@ -176,6 +176,10 @@ def command_callback(msg):
 
         publish_pose_as_transform(gp_base, 'm1n6s300_link_base', 'G', 0.0)
 
+        gp_base.position.x = 0.295
+        gp_base.position.y = 0.009
+        gp_base.position.z = 0.248
+
         # Calculate Position Error.
         dx = (gp_base.position.x - p_gripper.position.x)
         dy = (gp_base.position.y - p_gripper.position.y)
@@ -212,18 +216,20 @@ def command_callback(msg):
         vx = max(min(dx * 3.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 3.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
         # vz = max(min(-0.12, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
-        vz = -0.08
+        # vz = -0.08
+        # vz = 0.0
+        vz = dz
 
         # Apply a nonlinearity to the velocity
         v = np.array([vx, vy, vz])
         vc = np.dot(v, VELO_COV)
 
-        # CURRENT_VELOCITY[0] = vc[0]
-        # CURRENT_VELOCITY[1] = vc[1]
-        # CURRENT_VELOCITY[2] = vc[2]
-        CURRENT_VELOCITY[0] = 0
-        CURRENT_VELOCITY[1] = 0
-        CURRENT_VELOCITY[2] = 0
+        CURRENT_VELOCITY[0] = vc[0]
+        CURRENT_VELOCITY[1] = vc[1]
+        CURRENT_VELOCITY[2] = vc[2]
+        # CURRENT_VELOCITY[0] = 0
+        # CURRENT_VELOCITY[1] = 0
+        # CURRENT_VELOCITY[2] = 0
 
         CURRENT_VELOCITY[3] = -1 * dp
         CURRENT_VELOCITY[4] = 1 * dr
