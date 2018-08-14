@@ -319,7 +319,13 @@ def robot_position_callback(msg):
 
             move_to_home()
 
-            moved_sucess = move_to_position(*HOME)
+            num_retrys = 3
+            for _ in range(num_retrys):
+                moved_sucess = move_to_position(*HOME)
+                if moved_sucess:
+                    break
+                else:
+                    rospy.loginfo("move_to_position failed, retrying")
             rospy.loginfo("Moved to home: {}".format(moved_sucess))
             rospy.sleep(0.25)
 
