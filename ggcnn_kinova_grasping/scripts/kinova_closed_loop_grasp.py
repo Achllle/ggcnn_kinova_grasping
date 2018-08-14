@@ -140,7 +140,7 @@ def command_callback(msg):
             if not LATCHED:
                 rospy.loginfo('LATCHING')
                 LATCHED = True
-                latch_msg = create_text_marker('Latching!', [0.1, 0.1, 0], frame_id='/m1n6s300_end_effector')
+                latch_msg = create_text_marker('Latching!', [0.02, 0.02, 0], frame_id='/m1n6s300_end_effector')
                 annotation_pub.publish(latch_msg)
 
         # Average pose in base frame.
@@ -264,6 +264,10 @@ def finger_position_callback(msg):
     # else:
     #     CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
+def stop_recording(event=None):
+    """Simply stop recording"""
+    global stop_record_srv
+    stop_record_srv(TriggerRequest())
 
 def robot_position_callback(msg):
     global SERVO
@@ -273,9 +277,10 @@ def robot_position_callback(msg):
     global VELO_COV
     global pose_averager
     global start_record_srv
-    global stop_record_srv
     global HOME
     global LATCHED
+    global run_nb
+    global take_name
 
     CURR_Z = msg.pose.position.z
 
@@ -293,6 +298,9 @@ def robot_position_callback(msg):
             rospy.sleep(0.1)
             set_finger_positions([8000, 8000, 8000])
             rospy.sleep(0.5)
+
+            # stop recording after a few seconds
+            rospy.Timer(3, stop_recording, oneshot=True)
 
             rospy.loginfo('moving to dropoff')
             move_to_position([0.17, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
@@ -315,8 +323,6 @@ def robot_position_callback(msg):
             rospy.loginfo("Moved to home: {}".format(moved_sucess))
             rospy.sleep(0.25)
 
-            stop_record_srv(TriggerRequest())
-
             LATCHED = False
 
             thing = None
@@ -335,8 +341,9 @@ def robot_position_callback(msg):
             pose_averager.reset()
 
             # generate random nb per illustration for each run
-            nb = np.random.randint(100)
-            start_record_srv(RecordRequest('ggcnn_run_Aug13_nb' + str(nb)))
+
+            run_nb += 1
+            start_record_srv(RecordRequest(take_name + str(run_nb)))
             
             # DEBUG: Achille added opening gripper to hardcoded pose
             set_finger_positions([2000,2000,2000])
@@ -383,7 +390,7 @@ if __name__ == '__main__':
     import signal
     rospy.on_shutdown(stop_record_srv) # when something else kills this node
     def handler(signum, frame):
-        stop_record_srv(TriggerRequest())
+        stop_recording()
         exit(0)
     signal.signal(signal.SIGINT, handler) # when the user shuts down the node
 
@@ -404,7 +411,9 @@ if __name__ == '__main__':
 
     SERVO = True
 
-    start_record_srv(RecordRequest('ggcnn_run_nb1'))
+    take_name = 'ggcnn_run_nb'
+    run_nb = 1
+    start_record_srv(RecordRequest(take_name + str(run_nb)))
 
     while not rospy.is_shutdown():
         if SERVO:
