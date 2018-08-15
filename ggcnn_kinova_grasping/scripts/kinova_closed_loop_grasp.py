@@ -21,7 +21,7 @@ from helpers.utils import create_text_marker
 
 MAX_VELO_X = 0.25
 MAX_VELO_Y = 0.15
-MAX_VELO_Z = 0.055
+MAX_VELO_Z = 0.085
 MAX_ROTATION = 3.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
@@ -218,8 +218,10 @@ def command_callback(msg):
 
         vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 2.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
-        # vz = max(min(-0.12, MAX_VELO_Z), -1.0*MAX_VELO_Z) 
-        vz = -0.08
+        influence_rotation = 0.01  # the higher this number, the slower z will go down
+        dz += influence_rotation * (abs(dr) + abs(dp) + abs(dyaw))
+        vz = max(min(dz - 0.04, MAX_VELO_Z), -1.0*MAX_VELO_Z)
+        # vz = -0.08
 
         # Apply a nonlinearity to the velocity
         v = np.array([vx, vy, vz])
