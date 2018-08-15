@@ -39,8 +39,13 @@ CURR_DEPTH = 350  # Depth measured from camera.
 
 SERVO = False
 
-HOME = [0.343614305258, -0.109523953199, 0.259922802448], \
-       [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
+HOME = [0.343614305258, -0.209523953199, 0.259922802448], \
+       [0.707106781, 0.707106781, 0.0, 0.0]
+# HOME = [0.343614305258, -0.209523953199, 0.259922802448], \
+#        [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
+
+# HOME = [0.343614305258, -0.109523953199, 0.259922802448], \
+#        [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
 # HOME = [0.223614305258, -0.139523953199, 0.259922802448], \
 #        [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708]
 # HOME = [0, -0.38, 0.35], [0.99, 0, 0, np.sqrt(1-0.99**2)]
@@ -82,7 +87,7 @@ class Averager():
         self.been_reset = True
 
 # originally (4,3)
-pose_averager = Averager(4, 2500)
+pose_averager = Averager(4, 25)
 
 
 def command_callback(msg):
@@ -224,7 +229,7 @@ def command_callback(msg):
 
         CURRENT_VELOCITY[3] = -1.0 * dp
         CURRENT_VELOCITY[4] = 1.0 * dr
-        CURRENT_VELOCITY[5] = max(min(4.0 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
+        CURRENT_VELOCITY[5] = max(min(1.0 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
         # CURRENT_VELOCITY[3] = 0
         # CURRENT_VELOCITY[4] = 0
         # CURRENT_VELOCITY[5] = 0
@@ -305,7 +310,7 @@ def robot_position_callback(msg):
             rospy.loginfo('moving to dropoff')
             move_to_position([0.17, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
 
-            inp = raw_input('Press u to unwrap, any other key to continue')
+            inp = raw_input('Press u to unwrap, and r to unwrap the other way, any other key to continue')
             if inp == 'u':
                 import time
                 joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
@@ -313,11 +318,18 @@ def robot_position_callback(msg):
                 rat = rospy.Rate(100)
                 while time.time() - time1 < 9:
                     joint_pub.publish(0,0,0,0,0,-60,0)
+            if inp == 'r':
+                import time
+                joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
+                time1 = time.time()
+                rat = rospy.Rate(100)
+                while time.time() - time1 < 9:
+                    joint_pub.publish(0,0,0,0,0,60,0)
 
             set_finger_positions([0, 0, 0])
             rospy.sleep(1)
 
-            move_to_home()
+            # move_to_home()
 
             num_retrys = 3
             for _ in range(num_retrys):
@@ -367,7 +379,7 @@ if __name__ == '__main__':
     rospy.init_node('kinova_velocity_control')
 
     rospy.loginfo('moving home...')
-    move_to_home()
+    # move_to_home()
     move_to_position(*HOME)
     rospy.sleep(0.5)
     rospy.loginfo('opening gripper...')

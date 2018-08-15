@@ -28,6 +28,9 @@ def move_to_position(position, orientation):
 
     if position_client.wait_for_result(rospy.Duration(15.0)):
         print(" done waiting.")
+        print('Result:\n\tState: {}\n\tStatus: {}\n\tSuccess?: {}'.format(
+        position_client.get_state(), position_client.get_goal_status_text(), position_client.get_result().success
+    ))
         return position_client.get_result().success
     else:
         position_client.cancel_all_goals()
