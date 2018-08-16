@@ -19,10 +19,10 @@ from helpers.gripper_action_client import set_finger_positions
 from helpers.position_action_client import move_to_position, move_to_home
 from helpers.utils import create_text_marker
 
-MAX_VELO_X = 0.25
-MAX_VELO_Y = 0.15
-MAX_VELO_Z = 0.085
-MAX_ROTATION = 3.5
+MAX_VELO_X = 0.25 
+MAX_VELO_Y = 0.15 
+MAX_VELO_Z = 0.085 
+MAX_ROTATION = 1.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
@@ -122,7 +122,7 @@ def command_callback(msg):
 
         # PBVS Method.
         rospy.loginfo("d[2]: {} | LATCH: {}".format(d[2], LATCHED))
-        if d[2] > 0.25 and not LATCHED:  # Min effective range of the realsense.
+        if d[2] > 0.18 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
             # 0.07 is distance from end effector (CURR_Z) to camera.
@@ -198,6 +198,8 @@ def command_callback(msg):
         dy = (gp_base.position.y - p_gripper.position.y)
         dz = (gp_base.position.z - p_gripper.position.z)
 
+        # rospy.loginfo("{} {} {}".format(dx, dy, dz))
+
         # Orientation velocity control is done in the frame of the gripper,
         #  so figure out the rotation offset in the end effector frame.
         gp_gripper = convert_pose(gp_base, 'm1n6s300_link_base', 'm1n6s300_end_effector')
@@ -225,9 +227,9 @@ def command_callback(msg):
 
         vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 2.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
-        influence_rotation = 0.01  # the higher this number, the slower z will go down
+        influence_rotation = 0.05  # the higher this number, the slower z will go down
         dz += influence_rotation * (abs(dr) + abs(dp) + abs(dyaw))
-        vz = max(min(dz - 0.04, MAX_VELO_Z), -1.0*MAX_VELO_Z)
+        vz = max(min(dz - 0.08, MAX_VELO_Z), -1.0*MAX_VELO_Z)
         # vz = -0.08
 
         # Apply a nonlinearity to the velocity
@@ -241,13 +243,13 @@ def command_callback(msg):
         # CURRENT_VELOCITY[1] = 0
         # CURRENT_VELOCITY[2] = 0
 
-        CURRENT_VELOCITY[3] = -1.0 * dp
-        CURRENT_VELOCITY[4] = 1.0 * dr
+        CURRENT_VELOCITY[3] = max(min(-1.0 * dp, MAX_ROTATION), -1 * MAX_ROTATION)
+        CURRENT_VELOCITY[4] = max(min(1.0 * dr, MAX_ROTATION), -1 * MAX_ROTATION)
         CURRENT_VELOCITY[5] = max(min(1.0 * dyaw, MAX_ROTATION), -1 * MAX_ROTATION)
         # CURRENT_VELOCITY[3] = 0
         # CURRENT_VELOCITY[4] = 0
         # CURRENT_VELOCITY[5] = 0
-
+        # CURRENT_VELOCITY = [vel*0.2 for vel in CURRENT_VELOCITY]
 
 def robot_wrench_callback(msg):
     # Monitor force on the end effector, with some smoothing.
@@ -324,22 +326,8 @@ def robot_position_callback(msg):
             rospy.loginfo('moving to dropoff')
             move_to_position([0.17, -0.239523953199, 0.269922802448], [0.899598777294, 0.434111058712, -0.0245193094015, 0.0408461801708])
 
-            inp = raw_input('Press u to unwrap, and r to unwrap the other way, any other key to continue')
-            if inp == 'u':
-                import time
-                joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
-                time1 = time.time()
-                rat = rospy.Rate(100)
-                while time.time() - time1 < 9:
-                    joint_pub.publish(0,0,0,0,0,-60,0)
-            if inp == 'r':
-                import time
-                joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
-                time1 = time.time()
-                rat = rospy.Rate(100)
-                while time.time() - time1 < 9:
-                    joint_pub.publish(0,0,0,0,0,60,0)
-
+            wrapmania()
+    
             set_finger_positions([0, 0, 0])
             rospy.sleep(1)
 
@@ -356,6 +344,8 @@ def robot_position_callback(msg):
             rospy.sleep(0.25)
 
             LATCHED = False
+            
+            wrapmania()
 
             thing = None
             while thing != 's':
@@ -383,6 +373,23 @@ def robot_position_callback(msg):
             rospy.sleep(0.5)
             SERVO = True
 
+def wrapmania():
+    inp = raw_input('Press u to unwrap, and r to unwrap the other way, any other key to continue')
+    if inp == 'u':
+        import time
+        joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
+        time1 = time.time()
+        rat = rospy.Rate(100)
+        while time.time() - time1 < 9:
+            joint_pub.publish(0,0,0,0,0,-60,0)
+    if inp == 'r':
+        import time
+        joint_pub = rospy.Publisher('/m1n6s300_driver/in/joint_velocity', kinova_msgs.msg.JointVelocity, queue_size=1)
+        time1 = time.time()
+        rat = rospy.Rate(100)
+        while time.time() - time1 < 9:
+            joint_pub.publish(0,0,0,0,0,60,0)
+
 def move_to_pose(pose):
     # Wrapper for move to position.
     p = pose.position
@@ -399,7 +406,9 @@ if __name__ == '__main__':
     rospy.loginfo('opening gripper...')
     set_finger_positions([2000, 2000, 2000])
     rospy.sleep(0.5)
-
+    
+    wrapmania()
+    
     thing = None
     while thing != 's':
         thing = raw_input('Press s to Start, q to quit: ')
@@ -426,8 +435,8 @@ if __name__ == '__main__':
         exit(0)
     signal.signal(signal.SIGINT, handler) # when the user shuts down the node
 
-    start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
-    start_force_srv.call(kinova_msgs.srv.StartRequest())
+    # start_force_srv = rospy.ServiceProxy('/m1n6s300_driver/in/start_force_control', kinova_msgs.srv.Start)
+    # start_force_srv.call(kinova_msgs.srv.StartRequest())
 
     # Publish velocity at 100Hz.
     velo_pub = rospy.Publisher('/m1n6s300_driver/in/cartesian_velocity', kinova_msgs.msg.PoseVelocity, queue_size=1)
