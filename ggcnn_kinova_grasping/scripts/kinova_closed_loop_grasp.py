@@ -19,10 +19,12 @@ from helpers.gripper_action_client import set_finger_positions
 from helpers.position_action_client import move_to_position, move_to_home
 from helpers.utils import create_text_marker
 
+import copy
+
 MAX_VELO_X = 0.25 
 MAX_VELO_Y = 0.15 
 MAX_VELO_Z = 0.085 
-MAX_ROTATION = 1.5
+MAX_ROTATION = 3.5
 CURRENT_VELOCITY = [0, 0, 0, 0, 0, 0]
 CURRENT_FINGER_VELOCITY = [0, 0, 0]
 
@@ -99,7 +101,7 @@ class Averager():
         self.been_reset = True
 
 # originally (4,3)
-pose_averager = Averager(4, 25)
+pose_averager = Averager(4, 250)
 
 
 def command_callback(msg):
@@ -122,7 +124,7 @@ def command_callback(msg):
 
         # PBVS Method.
         rospy.loginfo("d[2]: {} | LATCH: {}".format(d[2], LATCHED))
-        if d[2] > 0.18 and not LATCHED:  # Min effective range of the realsense.
+        if d[2] > 0.25 and not LATCHED:  # Min effective range of the realsense.
 
             # Convert width in pixels to mm.
             # 0.07 is distance from end effector (CURR_Z) to camera.
@@ -184,7 +186,7 @@ def command_callback(msg):
         # Get the Position of the End Effector in the frame fo the Robot base Link
         g_pose = geometry_msgs.msg.Pose()
 	    # TODO: analyze this, seems very hardcoded
-        g_pose.position.z = 0.03  # Offset from the end_effector frame to the actual position of the fingers
+        g_pose.position.z = 0.05  # Offset from the end_effector frame to the actual position of the fingers
         g_pose.position.y = 0
         g_pose.position.x = 0.01 #Offset from end_effector frame to where we think the two finger grasp happens
         g_pose.orientation.w = 1
@@ -224,6 +226,14 @@ def command_callback(msg):
         dr = 1 * e[0]
         dp = 1 * e[1]
         dyaw = 1 * e[2]
+
+        # ANGLE FLIPPING REJECTION CODE
+        old_dyaw = copy.copy(dyaw)
+        # dyaw = abs(dyaw)
+        dyaw = min([dyaw, abs(dyaw)-np.pi, abs(dyaw)+np.pi], key=abs)
+
+        if old_dyaw is not dyaw:
+            rospy.loginfo("ANGLE REJECTED!!!!!!! old: {} new: {}".format(old_dyaw, dyaw))
 
         vx = max(min(dx * 2.5, MAX_VELO_X), -1.0*MAX_VELO_X)
         vy = max(min(dy * 2.5, MAX_VELO_Y), -1.0*MAX_VELO_Y)
@@ -452,8 +462,8 @@ if __name__ == '__main__':
 
     SERVO = True
 
-    take_name = 'ggcnn_run_nb'
-    run_nb = 1
+    take_name = 'ggcnn_run_demoAug16_nb'
+    run_nb = 4
     start_record_srv(RecordRequest(take_name + str(run_nb)))
 
     while not rospy.is_shutdown():

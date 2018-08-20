@@ -10,6 +10,7 @@
 
     <!-- static_transform_publisher x y z (y p r || x y z w) frame_id child_frame_id  period (milliseconds) -->
   <node pkg="tf" type="static_transform_publisher" name="realsense_link_broadcaster"
-        args="0.10738551, -0.03020326, -0.06053236, 0.66076389, -0.08750102, 0.7313959, 0.14429378 /m1n6s300_end_effector /camera_link 10" />
+        args="0.09357359, -0.0483466, -0.09598325, 0.70607503, -0.10635832, 0.68940821, 0.12201759 /m1n6s300_end_effector /camera_link 10" />
 
 </launch>
+<!-- args="0.10738551, -0.03020326, -0.06053236, 0.66076389, -0.08750102, 0.7313959, 0.14429378 /m1n6s300_end_effector /camera_link 10" /> -->
