@@ -2,17 +2,11 @@
 
     <arg name="ggcnn_model_path" default="$(find ggcnn_kinova_grasping)/../../networks/ggcnn_rss/epoch_29_model.hdf5" />
 
-    <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
-        <arg name="json_file_path" value="$(find ggcnn_kinova_grasping)/config/D435_1280x720_disparity_shift31.json"/>
-    </include>
-    <rosparam param="/camera/realsense2_camera_manager/rs435_depth_exposure">6</rosparam>
-
-    <include file="$(find ggcnn_kinova_grasping)/launch/wrist_camera_peanut.launch" />
     <node name="ggcnn"
           pkg="ggcnn_kinova_grasping"
           type="run_ggcnn.py"
           output="screen">
           <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
     </node>
-    
+
 </launch>
