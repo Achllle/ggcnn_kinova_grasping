@@ -4,26 +4,19 @@
 
   <node pkg="nodelet" type="nodelet" name="convert_depth_to_m"
         args="load depth_image_proc/convert_metric standalone_nodelet">
-        <remap from="image_raw" to="/camera/aligned_depth_to_color/image_raw"/>
+        <remap from="image_raw" to="/oil/perception/hand_camera/rgb/image_raw"/>
         <remap from="image" to="/camera/depth/image_meters"/>
   </node>
 
-    <!-- static_transform_publisher x y z yaw pitch roll frame_id child_frame_id  period (milliseconds) -->
-  <node pkg="tf" type="static_transform_publisher" name="realsense_link_broadcaster"
-        args="0.08647089 -0.01136919 -0.13014236 0.70557962 0.03316748 0.70767564 -0.01668873 /m1n6s300_end_effector /camera_link 10" />
-        <!--args="0.0883543164002 0.0 -0.137266294321 -0.00577433042364 0.00253454213015 0.733962739224 0.679160460153 /m1n6s300_end_effector /camera_link 10" />-->
-        <!--args="0.045 0.03 0.0 0 1.571 0 /m1n6s300_link_6 /camera_link 10" />-->
+    <arg name="ggcnn_model_path" default="$(find ggcnn_kinova_grasping)/../../networks/ggcnn_rss/epoch_29_model.hdf5" />
 
-        <!-- args="0.085 -0.02 -0.01 -0.461 1.540 -0.478 /m1n6s300_link_6 /camera_link 10" /> -->
-    <!--args="0.0 -0.05 0.0 0 1.57 0.12 /m1n6s300_link_6 /camera_link 10" />-->
-        <!--args="0.05425 -0.024 -0.1258 3.14 1.32 0 /m1n6s300_link_6 /camera_link 10" />-->
-
-<!--  <node name="image_view_rgb" pkg="image_view" type="image_view" respawn="false" output="screen">
-    <remap from="image" to="/camera/rgb/image_color" />
-  </node>
-
-  <node name="image_view_depth" pkg="image_view" type="image_view" respawn="false" output="screen">
-    <remap from="image" to="/camera/depth/image_meters" />
-  </node> -->
+    <node name="ggcnn"
+          pkg="ggcnn_kinova_grasping"
+          type="run_ggcnn.py"
+          output="screen">
+          <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
+    </node>
+    
+    <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
 
 </launch>
