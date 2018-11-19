@@ -45,7 +45,7 @@ def move_to_position(position, orientation):
         except RuntimeError as e:
             rospy.loginfo('trying again')
             rospy.sleep(1)
-    group.set_pose_reference_frame('m1n6s300_link_base')
+    # group.set_pose_reference_frame('m1n6s300_link_base')
     rospy.loginfo(group.get_planning_frame())
     group.set_pose_target(pose)
     plan = group.go(wait=True)

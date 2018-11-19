@@ -76,7 +76,8 @@ def execute_grasp(mode):
     gp.orientation.w = 1
 
     # Convert to base frame, add the angle in (ensures planar grasp, camera isn't guaranteed to be perpendicular).
-    gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'm1n6s300_link_base')
+    # gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'm1n6s300_link_base')
+    gp_base = convert_pose(gp, 'camera_depth_optical_frame', 'odom')
 
     q = tft.quaternion_from_euler(np.pi, 0, d[3])
     gp_base.orientation.x = q[0]
@@ -86,8 +87,9 @@ def execute_grasp(mode):
 
     goal_pub = rospy.Publisher('goal_pose_ggcnn', geometry_msgs.msg.PoseStamped, queue_size=5)
     gp_base_stamped = geometry_msgs.msg.PoseStamped()
-    gp_base_stamped.header.frame_id = 'm1n6s300_link_base'
+    gp_base_stamped.header.frame_id = 'odom'
     gp_base_stamped.pose = gp_base
+
     goal_pub.publish(gp_base_stamped)
 
     # for visualization: last arg is the duration of the publishment
