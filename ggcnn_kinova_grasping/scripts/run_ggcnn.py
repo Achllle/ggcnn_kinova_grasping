@@ -42,6 +42,7 @@ ROBOT_Z = 0
 graph = tf.get_default_graph()
 
 # Get the camera parameters
+camera_info_topic = rospy.get_param('depth_camera_info_topic')
 camera_info_msg = rospy.wait_for_message('/camera/depth/camera_info', CameraInfo)
 K = camera_info_msg.K
 fx = K[0]
@@ -206,7 +207,8 @@ def depth_callback(depth_message):
         cmd_pub.publish(cmd_msg)
 
 
-depth_sub = rospy.Subscriber('/camera/depth/image_meters', Image, depth_callback, queue_size=1)
+camera_depth_topic = rospy.get_param('depth_camera_topic')
+depth_sub = rospy.Subscriber(camera_depth_topic, Image, depth_callback, queue_size=1)
 robot_pos_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', PoseStamped, robot_pos_callback, queue_size=1)
 
 while not rospy.is_shutdown():
