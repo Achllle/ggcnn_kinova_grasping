@@ -207,8 +207,8 @@ def depth_callback(depth_message):
         cmd_pub.publish(cmd_msg)
 
 
-camera_depth_topic = rospy.get_param('depth_camera_topic')
-depth_sub = rospy.Subscriber(camera_depth_topic, Image, depth_callback, queue_size=1)
+camera_depth_meter_topic = rospy.get_param('~image_meters')
+depth_sub = rospy.Subscriber(camera_depth_meter_topic, Image, depth_callback, queue_size=1)
 robot_pos_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', PoseStamped, robot_pos_callback, queue_size=1)
 
 while not rospy.is_shutdown():

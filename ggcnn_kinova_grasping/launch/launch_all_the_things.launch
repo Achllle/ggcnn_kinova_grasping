@@ -1,14 +1,23 @@
 <launch>
 
     <arg name="ggcnn_model_path" default="$(find ggcnn_kinova_grasping)/../../networks/ggcnn_rss/epoch_29_model.hdf5" />
+    <arg name="depth_camera_topic" default="/oil/perception/hand_camera/depth/image_raw"/>
+    <arg name="depth_camera_info_topic" default="/oil/perception/hand_camera/depth/camera_info"/>
 
     <node name="ggcnn"
           pkg="ggcnn_kinova_grasping"
           type="run_ggcnn.py"
           output="screen">
         <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
-        <rosparam param="depth_camera_info_topic" subst_value="true">/oil/perception/hand_camera/depth/camera_info</rosparam>
-        <rosparam param="depth_camera_topic" subst_value="true">/oil/perception/hand_camera/depth/image_raw</rosparam>
+        <rosparam param="depth_camera_info_topic" subst_value="true">$(arg depth_camera_info_topic)</rosparam>
+        <rosparam param="depth_camera_topic_converted_meters">image_meters</rosparam>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
+    <node pkg="nodelet" type="nodelet" name="convert_depth_to_m"
+          args="load depth_image_proc/convert_metric standalone_nodelet">
+        <remap from="image_raw" to="$(arg depth_camera_topic)"/> <!-- in -->
+        <remap from="image" to="/ggcnn/image_meters"/> <!-- out -->
     </node>
 
 </launch>
