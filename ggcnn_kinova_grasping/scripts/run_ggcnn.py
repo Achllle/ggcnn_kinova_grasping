@@ -19,11 +19,11 @@ from std_msgs.msg import Float32MultiArray
 
 bridge = CvBridge()
 
+rospy.init_node('ggcnn_detection')
+
 # Load the Network.
 MODEL_FILE = rospy.get_param("~ggcnn_model_path")
 model = load_model(MODEL_FILE)
-
-rospy.init_node('ggcnn_detection')
 
 rospy.loginfo('initialized node, loaded model')
 
@@ -42,8 +42,8 @@ ROBOT_Z = 0
 graph = tf.get_default_graph()
 
 # Get the camera parameters
-camera_info_topic = rospy.get_param('depth_camera_info_topic')
-camera_info_msg = rospy.wait_for_message('/camera/depth/camera_info', CameraInfo)
+camera_info_topic = rospy.get_param('~depth_camera_info_topic')
+camera_info_msg = rospy.wait_for_message(camera_info_topic, CameraInfo)
 K = camera_info_msg.K
 fx = K[0]
 cx = K[2]
@@ -207,7 +207,7 @@ def depth_callback(depth_message):
         cmd_pub.publish(cmd_msg)
 
 
-camera_depth_meter_topic = rospy.get_param('~image_meters')
+camera_depth_meter_topic = rospy.get_param('~depth_camera_topic_converted_meters')
 depth_sub = rospy.Subscriber(camera_depth_meter_topic, Image, depth_callback, queue_size=1)
 robot_pos_sub = rospy.Subscriber('/m1n6s300_driver/out/tool_pose', PoseStamped, robot_pos_callback, queue_size=1)
 

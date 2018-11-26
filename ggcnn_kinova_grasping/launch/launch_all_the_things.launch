@@ -10,7 +10,7 @@
           output="screen">
         <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
         <rosparam param="depth_camera_info_topic" subst_value="true">$(arg depth_camera_info_topic)</rosparam>
-        <rosparam param="depth_camera_topic_converted_meters">image_meters</rosparam>
+        <rosparam param="depth_camera_topic_converted_meters">/ggcnn/image_meters</rosparam>
     </node>
 
     <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
