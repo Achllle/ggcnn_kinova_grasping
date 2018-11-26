@@ -20,7 +20,7 @@ from std_msgs.msg import Float32MultiArray
 bridge = CvBridge()
 
 # Load the Network.
-MODEL_FILE = '/home/achille/Documents/peanut_robotics/ggcnn_ws/src/networks/ggcnn_rss/epoch_29_model.hdf5'
+MODEL_FILE = rospy.get_param("~ggcnn_model_path")
 model = load_model(MODEL_FILE)
 
 rospy.init_node('ggcnn_detection')

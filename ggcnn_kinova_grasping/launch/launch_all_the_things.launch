@@ -1,11 +1,12 @@
 <launch>
 
-    <include file="$(find realsense2_camera)/launch/rs_camera.launch" />
-    <include file="$(find ggcnn_kinova_grasping)/launch/wrist_camera_peanut.launch" />
+    <arg name="ggcnn_model_path" default="$(find ggcnn_kinova_grasping)/../../networks/ggcnn_rss/epoch_29_model.hdf5" />
+
     <node name="ggcnn"
           pkg="ggcnn_kinova_grasping"
           type="run_ggcnn.py"
-          output="screen"
-    />
+          output="screen">
+        <rosparam param="ggcnn_model_path" subst_value="true">$(arg ggcnn_model_path)</rosparam>
+    </node>
 
 </launch>
